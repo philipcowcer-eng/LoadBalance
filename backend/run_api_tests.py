@@ -4,7 +4,9 @@ import unittest
 import json
 import time
 
-BASE_URL = "http://localhost:8001/api"
+import os
+
+BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8001/api")
 
 class TestResourceManagerAPI(unittest.TestCase):
     def setUp(self):

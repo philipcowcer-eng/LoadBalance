@@ -5,8 +5,12 @@ services:
     build: ./backend
     container_name: resource_manager_backend
     restart: always
-    ports:
-      - "8000:8000"
+    environment:
+      # Configure allowed CORS origins (comma-separated)
+      - ALLOWED_ORIGINS=http://localhost:5173,https://planning.goodenough.to
+    # Only expose to internal network (frontend proxy handles external traffic)
+    expose:
+      - "8000"
     volumes:
       - ./backend/resource_manager.db:/app/resource_manager.db
 

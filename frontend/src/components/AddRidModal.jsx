@@ -15,7 +15,7 @@ const AddRidModal = ({ projectId, onClose, onSave }) => {
         try {
             // Use the API_BASE equivalent or relative path if proxied
             // Assuming API_BASE is available via context or passed prop if needed?
-            // For now, hardcode http://localhost:8000 or expect parent to handle if we pass logic?
+            // API call uses dynamic detection for dev/prod environments
             // Better: component makes the call using standard fetch
 
             const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8001' : '/api';

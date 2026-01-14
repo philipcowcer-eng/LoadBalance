@@ -8,6 +8,7 @@ from datetime import datetime
 from pydantic import BaseModel
 import uuid
 import enum
+import os
 import models, schemas, database
 from database import engine, get_db
 
@@ -16,16 +17,14 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Network Resource Manager API", version="0.2.0")
 
-# Enable CORS for frontend development and production
+# CORS Configuration - reads from environment variable or uses defaults
+# Set ALLOWED_ORIGINS env var as comma-separated list: "http://localhost:5173,https://myapp.com"
+default_origins = "http://localhost:5173,http://127.0.0.1:5173,http://0.0.0.0:5173"
+allowed_origins = os.getenv("ALLOWED_ORIGINS", default_origins).split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173", 
-        "http://127.0.0.1:5173", 
-        "http://0.0.0.0:5173",
-        "https://planning.goodenough.to",
-        "http://planning.goodenough.to",
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
