@@ -16,10 +16,16 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Network Resource Manager API", version="0.2.0")
 
-# Enable CORS for frontend development
+# Enable CORS for frontend development and production
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://0.0.0.0:5173"],  # Support various hostnames
+    allow_origins=[
+        "http://localhost:5173", 
+        "http://127.0.0.1:5173", 
+        "http://0.0.0.0:5173",
+        "https://planning.goodenough.to",
+        "http://planning.goodenough.to",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
