@@ -163,8 +163,13 @@ def get_projects(db: Session = Depends(get_db)):
 
 @app.post("/api/projects", response_model=schemas.Project)
 def create_project(project: schemas.ProjectCreate, db: Session = Depends(get_db)):
-    # Use Pydantic's JSON mode to ensure Enums/UUIDs are serialized to primitives for SQLite
-    data = project.model_dump(mode='json')
+    # Use standard model_dump to keep Python objects (Dates, Enums)
+    # SQLAlchemy handles Enums/Dates automatically for SQLite, but UUIDs need to be strings
+    data = project.model_dump()
+    
+    # Ensure UUIDs are strings for SQLite String columns
+    if data.get("owner_id"): data["owner_id"] = str(data["owner_id"])
+    if data.get("manager_id"): data["manager_id"] = str(data["manager_id"])
     
     db_project = models.Project(**data)
     db.add(db_project)
@@ -186,6 +191,9 @@ def update_project(project_id: UUID, project: schemas.ProjectCreate, db: Session
         raise HTTPException(status_code=404, detail="Project not found")
     
     for var, value in project.model_dump().items():
+        # SQLite storage: IDs must be strings
+        if var in ["owner_id", "manager_id"] and value:
+            value = str(value)
         setattr(db_project, var, value)
     
     db.commit()
@@ -209,6 +217,10 @@ def patch_project(project_id: UUID, project_update: schemas.ProjectUpdate, db: S
         # Track changes for impact log
         changes = []
         for field, new_value in update_data.items():
+            # SQLite storage: IDs must be strings
+            if field in ["owner_id", "manager_id"] and new_value:
+                new_value = str(new_value)
+            
             old_value = getattr(db_project, field)
             if old_value != new_value:
                 # Handle UUID or Enum comparison/storage for logging
