@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8001' : '/api';
+const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8001' : '';
 
 const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate }) => {
     const [activeTab, setActiveTab] = useState('overview');

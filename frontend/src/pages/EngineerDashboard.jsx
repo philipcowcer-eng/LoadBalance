@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8001' : '/api';
+const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8001' : '';
 
 const EngineerDashboard = ({ engineers, allAllocations, projects = [] }) => {
     // Simulation: "Who am I?"

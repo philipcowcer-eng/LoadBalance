@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8001' : '/api';
+const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8001' : '';
 
 const AddEngineerModal = ({ onClose, onSave }) => {
     const [formData, setFormData] = useState({

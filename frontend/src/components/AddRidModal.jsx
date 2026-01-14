@@ -18,7 +18,7 @@ const AddRidModal = ({ projectId, onClose, onSave }) => {
             // API call uses dynamic detection for dev/prod environments
             // Better: component makes the call using standard fetch
 
-            const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8001' : '/api';
+            const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8001' : '';
 
             const res = await fetch(`${API_BASE}/api/projects/${projectId}/rid-log`, {
                 method: 'POST',

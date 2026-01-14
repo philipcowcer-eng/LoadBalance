@@ -11,9 +11,11 @@ import AllocationCard from './components/AllocationCard';
 import QuickAddPopover from './components/QuickAddPopover';
 
 // Detect if running in production (via domain) or development (localhost)
+// In production, API calls go through nginx proxy at /api, so we use empty string
+// In dev, we need the full localhost URL
 const API_BASE = window.location.hostname === 'localhost'
   ? 'http://localhost:8001'
-  : '/api';
+  : '';
 
 // Utility for priority badges
 const PriorityBadge = ({ priority }) => {
