@@ -10,6 +10,7 @@ import EngineerProfileModal from './components/EngineerProfileModal';
 import AllocationCard from './components/AllocationCard';
 import QuickAddPopover from './components/QuickAddPopover';
 import MobileDashboard from './components/MobileDashboard';
+import MobileStaffView from './components/MobileStaffView';
 
 // Detect if running in production (via domain) or development (localhost)
 // In production, API calls go through nginx proxy at /api, so we use empty string
@@ -1246,300 +1247,311 @@ function App() {
     };
 
     return (
-      <div className="workbench-container" style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#F8FAFC' }}>
-        {/* Top Header Bar */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '1rem 2rem',
-          background: 'white',
-          borderBottom: '1px solid #E2E8F0',
-          position: 'sticky',
-          top: 0,
-          zIndex: 10
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0, color: '#0F172A' }}>Staff Planning</h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748B', fontSize: '0.875rem', background: '#F1F5F9', padding: '0.375rem 0.75rem', borderRadius: '6px' }}>
-              <span>📅 Week of {currentWeekLabel}</span>
+      <>
+        {/* Mobile Agenda View (US-MOBILE-002) */}
+        {window.innerWidth < 768 ? (
+          <MobileStaffView
+            engineers={engineers}
+            engineerSchedules={engineerSchedules}
+            viewWeeks={viewWeeks}
+          />
+        ) : (
+          <div className="workbench-container" style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#F8FAFC' }}>
+            {/* Top Header Bar */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '1rem 2rem',
+              background: 'white',
+              borderBottom: '1px solid #E2E8F0',
+              position: 'sticky',
+              top: 0,
+              zIndex: 10
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0, color: '#0F172A' }}>Staff Planning</h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748B', fontSize: '0.875rem', background: '#F1F5F9', padding: '0.375rem 0.75rem', borderRadius: '6px' }}>
+                  <span>📅 Week of {currentWeekLabel}</span>
+                </div>
+
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button className="btn btn-primary" onClick={() => setShowAddEngModal(true)} style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" /></svg>
+                  Add Resource
+                </button>
+                <button className="btn" style={{ background: 'white', border: '1px solid #E2E8F0' }}>Cancel</button>
+                <button className="btn btn-primary" style={{ padding: '0.5rem 1.5rem' }}>Save Grid</button>
+              </div>
             </div>
 
-          </div>
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <button className="btn btn-primary" onClick={() => setShowAddEngModal(true)} style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" /></svg>
-              Add Resource
-            </button>
-            <button className="btn" style={{ background: 'white', border: '1px solid #E2E8F0' }}>Cancel</button>
-            <button className="btn btn-primary" style={{ padding: '0.5rem 1.5rem' }}>Save Grid</button>
-          </div>
-        </div>
+            {/* Impact Summary Banner (Relocated US-3.3) */}
+            <div style={{
+              display: 'flex',
+              gap: '2rem',
+              padding: '0.75rem 2rem',
+              background: '#FEF2F2',
+              borderBottom: '1px solid #FEE2E2',
+              alignItems: 'center'
+            }}>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 800, color: '#EF4444', textTransform: 'uppercase' }}>Current Impact</div>
+              <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '0.8125rem', color: '#475569' }}>Unassigned Hours:</span>
+                  <span style={{ fontWeight: 700, color: '#0F172A', fontSize: '1rem' }}>{totalUnassignedHours}h</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '0.8125rem', color: '#475569' }}>Team Overload:</span>
+                  <span style={{ fontWeight: 700, color: '#EF4444', fontSize: '1rem' }}>{teamOverloadCount} Eng</span>
+                </div>
+              </div>
+              {teamOverloadCount > 0 && (
+                <div style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#B91C1C', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+                  Capacity Alert: {teamOverloadCount} resources are currently over-allocated.
+                </div>
+              )}
+            </div>
 
-        {/* Impact Summary Banner (Relocated US-3.3) */}
-        <div style={{
-          display: 'flex',
-          gap: '2rem',
-          padding: '0.75rem 2rem',
-          background: '#FEF2F2',
-          borderBottom: '1px solid #FEE2E2',
-          alignItems: 'center'
-        }}>
-          <div style={{ fontSize: '0.6875rem', fontWeight: 800, color: '#EF4444', textTransform: 'uppercase' }}>Current Impact</div>
-          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
-              <span style={{ fontSize: '0.8125rem', color: '#475569' }}>Unassigned Hours:</span>
-              <span style={{ fontWeight: 700, color: '#0F172A', fontSize: '1rem' }}>{totalUnassignedHours}h</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
-              <span style={{ fontSize: '0.8125rem', color: '#475569' }}>Team Overload:</span>
-              <span style={{ fontWeight: 700, color: '#EF4444', fontSize: '1rem' }}>{teamOverloadCount} Eng</span>
-            </div>
-          </div>
-          {teamOverloadCount > 0 && (
-            <div style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#B91C1C', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
-              Capacity Alert: {teamOverloadCount} resources are currently over-allocated.
-            </div>
-          )}
-        </div>
+            <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+              {/* Main Grid Area */}
+              <div style={{ flex: 1, overflow: 'auto', padding: '1.5rem 2rem', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ flex: 1, background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', overflow: 'auto', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, left: 0, zIndex: 30, background: 'white', borderRadius: '12px 12px 0 0' }}>
+                    <span style={{ fontWeight: 700, color: '#0F172A', fontSize: '1rem' }}>Team Schedule (US-3.1)</span>
+                    <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem', color: '#64748B' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><div style={{ width: 8, height: 8, background: '#EF4444', borderRadius: '50%' }}></div> P1 Critical</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><div style={{ width: 8, height: 8, background: '#64748B', borderRadius: '50%' }}></div> KTLO</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><div style={{ width: 8, height: 8, background: '#CBD5E1', borderRadius: '50%' }}></div> Available</div>
+                    </div>
+                  </div>
 
-        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-          {/* Main Grid Area */}
-          <div style={{ flex: 1, overflow: 'auto', padding: '1.5rem 2rem', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ flex: 1, background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', overflow: 'auto', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column' }}>
-              <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, left: 0, zIndex: 30, background: 'white', borderRadius: '12px 12px 0 0' }}>
-                <span style={{ fontWeight: 700, color: '#0F172A', fontSize: '1rem' }}>Team Schedule (US-3.1)</span>
-                <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem', color: '#64748B' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><div style={{ width: 8, height: 8, background: '#EF4444', borderRadius: '50%' }}></div> P1 Critical</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><div style={{ width: 8, height: 8, background: '#64748B', borderRadius: '50%' }}></div> KTLO</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><div style={{ width: 8, height: 8, background: '#CBD5E1', borderRadius: '50%' }}></div> Available</div>
+                  <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, minWidth: 'max-content' }}>
+                    <thead>
+                      <tr style={{ background: '#F8FAFC', position: 'sticky', top: '56px', zIndex: 25 }}>
+                        <th style={{ textAlign: 'left', padding: '1rem 1.5rem', fontSize: '0.6875rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', width: '200px', position: 'sticky', left: 0, zIndex: 26, background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>Engineer</th>
+                        {viewWeeks.map(week => (
+                          <th key={week.id} style={{ textAlign: 'left', padding: '1rem', fontSize: '0.6875rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', borderBottom: '1px solid #E2E8F0', minWidth: '180px', background: '#F8FAFC' }}>{week.label}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {engineerSchedules.map(eng => (
+                        <tr key={eng.id}>
+                          <td
+                            onMouseEnter={() => setHoveredEngineerId(eng.id)}
+                            onMouseLeave={() => setHoveredEngineerId(null)}
+                            style={{ padding: '1.25rem 1.5rem', verticalAlign: 'top', position: 'sticky', left: 0, zIndex: 10, background: 'white', borderBottom: '1px solid #F1F5F9', borderRight: '1px solid #F1F5F9' }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                              <div>
+                                <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: '#0F172A', cursor: 'pointer' }} onClick={() => setProfileEngineer(eng)}>{eng.name}</div>
+                                <div style={{ fontSize: '0.75rem', color: '#64748B', marginBottom: '0.5rem' }}>{eng.role}</div>
+                              </div>
+                              {hoveredEngineerId === eng.id && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleDeleteEngineer(eng.id, eng.name); }}
+                                  style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#EF4444', padding: '0 0 0 8px', fontSize: '0.875rem' }}
+                                  title="Delete Resource"
+                                >
+                                  🗑️
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Capacity Bar */}
+                            <div style={{ marginTop: '0.5rem' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6875rem', fontWeight: 700, marginBottom: '2px', color: eng.allocatedTotal > eng.effective ? '#EF4444' : '#10B981' }}>
+                                <span>{eng.allocatedTotal}h / {eng.effective}h {eng.allocatedTotal > eng.effective && '(Over)'}</span>
+                              </div>
+                              <div style={{ height: '4px', background: '#F1F5F9', borderRadius: '2px', overflow: 'hidden' }}>
+                                <div style={{
+                                  height: '100%',
+                                  width: `${Math.min((eng.allocatedTotal / eng.effective) * 100, 100)}%`,
+                                  background: eng.allocatedTotal > eng.effective ? '#EF4444' : '#10B981',
+                                  borderRadius: '2px'
+                                }}></div>
+                              </div>
+                            </div>
+                          </td>
+
+                          {viewWeeks.map(week => (
+                            <td key={week.id} style={{ padding: '0.75rem', verticalAlign: 'top', minWidth: '180px', borderBottom: '1px solid #F1F5F9' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                {eng.projectWeeklyTotals
+                                  .filter(projAlloc => isProjectActiveInWeekHelper(projAlloc.id, week.rawDate))
+                                  .map(projAlloc => (
+                                    <AllocationCard
+                                      key={projAlloc.id}
+                                      allocation={{
+                                        id: projAlloc.allocationId,
+                                        name: projAlloc.name,
+                                        hours: projAlloc.hours,
+                                        category: projAlloc.category,
+                                        priority: projAlloc.priority
+                                      }}
+                                      priorityColor={getPriorityColor(projAlloc.priority)}
+                                      onDelete={handleDeleteAllocation}
+                                      onUpdate={handleUpdateAllocation}
+                                    />
+                                  ))}
+
+                                {/* Empty/Add target */}
+                                <div
+                                  onDragOver={handleDragOver}
+                                  onDrop={(e) => handleDrop(e, eng.id)}
+                                  onClick={(e) => setQuickAddTarget({ engineerId: eng.id, anchorRect: e.currentTarget.getBoundingClientRect() })}
+                                  style={{
+                                    height: '48px',
+                                    border: '2px dashed #E2E8F0',
+                                    borderRadius: '8px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: '#94A3B8',
+                                    fontSize: '0.75rem',
+                                    background: 'rgba(248, 250, 252, 0.5)',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = 'rgba(248, 250, 252, 0.8)';
+                                    e.currentTarget.style.borderColor = '#94A3B8';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = 'rgba(248, 250, 252, 0.5)';
+                                    e.currentTarget.style.borderColor = '#E2E8F0';
+                                  }}
+                                >
+                                  + Allocate
+                                </div>
+                              </div>
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
 
-              <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, minWidth: 'max-content' }}>
-                <thead>
-                  <tr style={{ background: '#F8FAFC', position: 'sticky', top: '56px', zIndex: 25 }}>
-                    <th style={{ textAlign: 'left', padding: '1rem 1.5rem', fontSize: '0.6875rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', width: '200px', position: 'sticky', left: 0, zIndex: 26, background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>Engineer</th>
-                    {viewWeeks.map(week => (
-                      <th key={week.id} style={{ textAlign: 'left', padding: '1rem', fontSize: '0.6875rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', borderBottom: '1px solid #E2E8F0', minWidth: '180px', background: '#F8FAFC' }}>{week.label}</th>
+              {/* Sidebar Area */}
+              <div style={{ width: '300px', background: 'white', borderLeft: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #E2E8F0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <div style={{ fontWeight: 700, color: '#0F172A' }}>Uni-Backlog (US-3.2)</div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.625rem', color: '#64748B', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={showFullyStaffed} onChange={(e) => setShowFullyStaffed(e.target.checked)} />
+                      Show Done
+                    </label>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.25rem', padding: '0.25rem', background: '#F1F5F9', borderRadius: '6px' }}>
+                    {['All', 'P1 Only', 'Unassigned'].map(tab => (
+                      <button
+                        key={tab}
+                        onClick={() => setBacklogFilter(tab)}
+                        style={{
+                          flex: 1,
+                          border: 'none',
+                          background: tab === backlogFilter ? 'white' : 'transparent',
+                          fontSize: '0.6875rem',
+                          fontWeight: 600,
+                          padding: '0.375rem',
+                          borderRadius: '4px',
+                          boxShadow: tab === backlogFilter ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                          color: tab === backlogFilter ? '#2563EB' : '#64748B',
+                          cursor: 'pointer'
+                        }}>{tab}</button>
                     ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {engineerSchedules.map(eng => (
-                    <tr key={eng.id}>
-                      <td
-                        onMouseEnter={() => setHoveredEngineerId(eng.id)}
-                        onMouseLeave={() => setHoveredEngineerId(null)}
-                        style={{ padding: '1.25rem 1.5rem', verticalAlign: 'top', position: 'sticky', left: 0, zIndex: 10, background: 'white', borderBottom: '1px solid #F1F5F9', borderRight: '1px solid #F1F5F9' }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <div>
-                            <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: '#0F172A', cursor: 'pointer' }} onClick={() => setProfileEngineer(eng)}>{eng.name}</div>
-                            <div style={{ fontSize: '0.75rem', color: '#64748B', marginBottom: '0.5rem' }}>{eng.role}</div>
-                          </div>
-                          {hoveredEngineerId === eng.id && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleDeleteEngineer(eng.id, eng.name); }}
-                              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#EF4444', padding: '0 0 0 8px', fontSize: '0.875rem' }}
-                              title="Delete Resource"
+                  </div>
+                </div>
+
+                <div style={{ flex: 1, overflow: 'auto', padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {backlogProjects.map(proj => {
+                    const totalReq = proj.total_hours_required || 0;
+                    const totalAlloc = proj.total_hours_allocated || 0;
+                    const progressPct = totalReq > 0 ? Math.round((totalAlloc / totalReq) * 100) : 100;
+
+                    return (
+                      <div
+                        key={proj.id}
+                        draggable={true}
+                        onDragStart={(e) => handleDragStart(e, proj)}
+                        style={{
+                          padding: '0.875rem',
+                          border: '1px solid #E2E8F0',
+                          borderRadius: '10px',
+                          position: 'relative',
+                          cursor: 'grab',
+                          background: 'white',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                        }}>
+                        <div style={{ position: 'absolute', top: '10px', right: '10px', fontSize: '0.625rem', fontWeight: 700, color: getPriorityColor(proj.priority), background: `${getPriorityColor(proj.priority)}10`, padding: '0.125rem 0.375rem', borderRadius: '4px' }}>
+                          {proj.priority.split('-')[0]}
+                        </div>
+                        <div style={{ fontWeight: 700, fontSize: '0.8125rem', color: '#0F172A', marginBottom: '0.4rem', paddingRight: '2.5rem' }}>{proj.name}</div>
+
+                        {/* Role Chips */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginBottom: '0.6rem' }}>
+                          {(proj.role_staffing || []).map((rs, idx) => (
+                            <div
+                              key={idx}
+                              title={`${rs.allocated}/${rs.required}h allocated`}
+                              style={{
+                                fontSize: '0.625rem',
+                                fontWeight: 600,
+                                padding: '0.125rem 0.375rem',
+                                borderRadius: '4px',
+                                background: rs.is_complete ? '#DCFCE7' : (rs.allocated > 0 ? '#FEF3C7' : '#F1F5F9'),
+                                color: rs.is_complete ? '#166534' : (rs.allocated > 0 ? '#92400E' : '#64748B'),
+                                border: `1px solid ${rs.is_complete ? '#BBF7D0' : (rs.allocated > 0 ? '#FDE68A' : '#E2E8F0')}`
+                              }}
                             >
-                              🗑️
-                            </button>
-                          )}
+                              {rs.role.split(' ').map(w => w[0]).join('')}: {rs.is_complete ? '✓' : `${rs.allocated}h`}
+                            </div>
+                          ))}
                         </div>
 
-                        {/* Capacity Bar */}
-                        <div style={{ marginTop: '0.5rem' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6875rem', fontWeight: 700, marginBottom: '2px', color: eng.allocatedTotal > eng.effective ? '#EF4444' : '#10B981' }}>
-                            <span>{eng.allocatedTotal}h / {eng.effective}h {eng.allocatedTotal > eng.effective && '(Over)'}</span>
-                          </div>
-                          <div style={{ height: '4px', background: '#F1F5F9', borderRadius: '2px', overflow: 'hidden' }}>
+                        {/* Progress Bar */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <div style={{ flex: 1, height: '4px', background: '#F1F5F9', borderRadius: '2px', overflow: 'hidden' }}>
                             <div style={{
                               height: '100%',
-                              width: `${Math.min((eng.allocatedTotal / eng.effective) * 100, 100)}%`,
-                              background: eng.allocatedTotal > eng.effective ? '#EF4444' : '#10B981',
+                              width: `${progressPct}%`,
+                              background: progressPct === 100 ? '#10B981' : '#3B82F6',
                               borderRadius: '2px'
                             }}></div>
                           </div>
+                          <span style={{ fontSize: '0.625rem', color: '#64748B', minWidth: '24px' }}>{progressPct}%</span>
                         </div>
-                      </td>
-
-                      {viewWeeks.map(week => (
-                        <td key={week.id} style={{ padding: '0.75rem', verticalAlign: 'top', minWidth: '180px', borderBottom: '1px solid #F1F5F9' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            {eng.projectWeeklyTotals
-                              .filter(projAlloc => isProjectActiveInWeekHelper(projAlloc.id, week.rawDate))
-                              .map(projAlloc => (
-                                <AllocationCard
-                                  key={projAlloc.id}
-                                  allocation={{
-                                    id: projAlloc.allocationId,
-                                    name: projAlloc.name,
-                                    hours: projAlloc.hours,
-                                    category: projAlloc.category,
-                                    priority: projAlloc.priority
-                                  }}
-                                  priorityColor={getPriorityColor(projAlloc.priority)}
-                                  onDelete={handleDeleteAllocation}
-                                  onUpdate={handleUpdateAllocation}
-                                />
-                              ))}
-
-                            {/* Empty/Add target */}
-                            <div
-                              onDragOver={handleDragOver}
-                              onDrop={(e) => handleDrop(e, eng.id)}
-                              onClick={(e) => setQuickAddTarget({ engineerId: eng.id, anchorRect: e.currentTarget.getBoundingClientRect() })}
-                              style={{
-                                height: '48px',
-                                border: '2px dashed #E2E8F0',
-                                borderRadius: '8px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: '#94A3B8',
-                                fontSize: '0.75rem',
-                                background: 'rgba(248, 250, 252, 0.5)',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s'
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.background = 'rgba(248, 250, 252, 0.8)';
-                                e.currentTarget.style.borderColor = '#94A3B8';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.background = 'rgba(248, 250, 252, 0.5)';
-                                e.currentTarget.style.borderColor = '#E2E8F0';
-                              }}
-                            >
-                              + Allocate
-                            </div>
-                          </div>
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Sidebar Area */}
-          <div style={{ width: '300px', background: 'white', borderLeft: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #E2E8F0' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <div style={{ fontWeight: 700, color: '#0F172A' }}>Uni-Backlog (US-3.2)</div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.625rem', color: '#64748B', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={showFullyStaffed} onChange={(e) => setShowFullyStaffed(e.target.checked)} />
-                  Show Done
-                </label>
-              </div>
-              <div style={{ display: 'flex', gap: '0.25rem', padding: '0.25rem', background: '#F1F5F9', borderRadius: '6px' }}>
-                {['All', 'P1 Only', 'Unassigned'].map(tab => (
-                  <button
-                    key={tab}
-                    onClick={() => setBacklogFilter(tab)}
-                    style={{
-                      flex: 1,
-                      border: 'none',
-                      background: tab === backlogFilter ? 'white' : 'transparent',
-                      fontSize: '0.6875rem',
-                      fontWeight: 600,
-                      padding: '0.375rem',
-                      borderRadius: '4px',
-                      boxShadow: tab === backlogFilter ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-                      color: tab === backlogFilter ? '#2563EB' : '#64748B',
-                      cursor: 'pointer'
-                    }}>{tab}</button>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ flex: 1, overflow: 'auto', padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {backlogProjects.map(proj => {
-                const totalReq = proj.total_hours_required || 0;
-                const totalAlloc = proj.total_hours_allocated || 0;
-                const progressPct = totalReq > 0 ? Math.round((totalAlloc / totalReq) * 100) : 100;
-
-                return (
-                  <div
-                    key={proj.id}
-                    draggable={true}
-                    onDragStart={(e) => handleDragStart(e, proj)}
-                    style={{
-                      padding: '0.875rem',
-                      border: '1px solid #E2E8F0',
-                      borderRadius: '10px',
-                      position: 'relative',
-                      cursor: 'grab',
-                      background: 'white',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                    }}>
-                    <div style={{ position: 'absolute', top: '10px', right: '10px', fontSize: '0.625rem', fontWeight: 700, color: getPriorityColor(proj.priority), background: `${getPriorityColor(proj.priority)}10`, padding: '0.125rem 0.375rem', borderRadius: '4px' }}>
-                      {proj.priority.split('-')[0]}
-                    </div>
-                    <div style={{ fontWeight: 700, fontSize: '0.8125rem', color: '#0F172A', marginBottom: '0.4rem', paddingRight: '2.5rem' }}>{proj.name}</div>
-
-                    {/* Role Chips */}
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginBottom: '0.6rem' }}>
-                      {(proj.role_staffing || []).map((rs, idx) => (
-                        <div
-                          key={idx}
-                          title={`${rs.allocated}/${rs.required}h allocated`}
-                          style={{
-                            fontSize: '0.625rem',
-                            fontWeight: 600,
-                            padding: '0.125rem 0.375rem',
-                            borderRadius: '4px',
-                            background: rs.is_complete ? '#DCFCE7' : (rs.allocated > 0 ? '#FEF3C7' : '#F1F5F9'),
-                            color: rs.is_complete ? '#166534' : (rs.allocated > 0 ? '#92400E' : '#64748B'),
-                            border: `1px solid ${rs.is_complete ? '#BBF7D0' : (rs.allocated > 0 ? '#FDE68A' : '#E2E8F0')}`
-                          }}
-                        >
-                          {rs.role.split(' ').map(w => w[0]).join('')}: {rs.is_complete ? '✓' : `${rs.allocated}h`}
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Progress Bar */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <div style={{ flex: 1, height: '4px', background: '#F1F5F9', borderRadius: '2px', overflow: 'hidden' }}>
-                        <div style={{
-                          height: '100%',
-                          width: `${progressPct}%`,
-                          background: progressPct === 100 ? '#10B981' : '#3B82F6',
-                          borderRadius: '2px'
-                        }}></div>
                       </div>
-                      <span style={{ fontSize: '0.625rem', color: '#64748B', minWidth: '24px' }}>{progressPct}%</span>
-                    </div>
-                  </div>
-                )
-              })}
+                    )
+                  })}
+                </div>
+              </div>
             </div>
+
+            {/* Add Resource Modal */}
+            {showAddEngModal && (
+              <AddEngineerModal onClose={() => setShowAddEngModal(false)} onSave={fetchData} />
+            )}
+
+            {/* Quick Add Popover */}
+            {quickAddTarget && (
+              <QuickAddPopover
+                projects={projects}
+                anchorRect={quickAddTarget.anchorRect}
+                onClose={() => setQuickAddTarget(null)}
+                onSelect={(projectId) => {
+                  handleAllocate(projectId, quickAddTarget.engineerId);
+                  setQuickAddTarget(null);
+                }}
+              />
+            )}
           </div>
-        </div>
-
-        {/* Add Resource Modal */}
-        {showAddEngModal && (
-          <AddEngineerModal onClose={() => setShowAddEngModal(false)} onSave={fetchData} />
         )}
-
-        {/* Quick Add Popover */}
-        {quickAddTarget && (
-          <QuickAddPopover
-            projects={projects}
-            anchorRect={quickAddTarget.anchorRect}
-            onClose={() => setQuickAddTarget(null)}
-            onSelect={(projectId) => {
-              handleAllocate(projectId, quickAddTarget.engineerId);
-              setQuickAddTarget(null);
-            }}
-          />
-        )}
-      </div>
+      </>
     );
   };
 
