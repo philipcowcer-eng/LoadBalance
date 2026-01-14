@@ -382,6 +382,7 @@ function App() {
           engineers={engineers}
           projects={projects}
           allocations={allAllocations}
+          onNewRequest={() => setShowIntakeModal(true)}
         />
       );
     }

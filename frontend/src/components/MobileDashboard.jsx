@@ -1,7 +1,7 @@
 import React from 'react';
 import { Activity, AlertTriangle, CheckCircle, Clock, PlusCircle } from 'lucide-react';
 
-const MobileDashboard = ({ engineers, projects, allocations }) => {
+const MobileDashboard = ({ engineers, projects, allocations, onNewRequest }) => {
     // --- Quick Calculations ---
 
     // 1. Utilization
@@ -12,15 +12,20 @@ const MobileDashboard = ({ engineers, projects, allocations }) => {
     // 2. Over-allocated Engineers
     const activeEngineerIds = new Set(allocations.map(a => a.engineer_id));
     let overAllocatedCount = 0;
-    // Simple check: anyone with > 40 hours allocated total? 
-    // (Note: This is a simplified check for the summary. The main dashboard has more complex logic.)
     const engineerLoads = {};
     allocations.forEach(a => {
         engineerLoads[a.engineer_id] = (engineerLoads[a.engineer_id] || 0) + a.hours_per_week;
     });
     overAllocatedCount = Object.values(engineerLoads).filter(hours => hours > 40).length;
 
-    // 3. Greeting
+    // 3. Project Stats
+    const totalProjects = projects.length;
+    const activeProjects = projects.filter(p => !p.workflow_status || ['Active', 'Approved', 'Pending Approval'].includes(p.workflow_status)).length;
+    const atRiskProjects = projects.filter(p => ['Amber', 'Red', 'Issue'].includes(p.rag_status)).length;
+    const completedProjects = projects.filter(p => p.workflow_status === 'Complete').length;
+
+
+    // 4. Greeting
     const hour = new Date().getHours();
     const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
 
@@ -70,6 +75,22 @@ const MobileDashboard = ({ engineers, projects, allocations }) => {
                 </div>
             </div>
 
+            {/* Project Stats Row */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+                <div style={{ background: 'white', padding: '1rem', borderRadius: '8px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#0F172A' }}>{activeProjects}</div>
+                    <div style={{ fontSize: '0.625rem', fontWeight: '600', color: '#64748B', textTransform: 'uppercase' }}>Active</div>
+                </div>
+                <div style={{ background: 'white', padding: '1rem', borderRadius: '8px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#F59E0B' }}>{atRiskProjects}</div>
+                    <div style={{ fontSize: '0.625rem', fontWeight: '600', color: '#64748B', textTransform: 'uppercase' }}>At Risk</div>
+                </div>
+                <div style={{ background: 'white', padding: '1rem', borderRadius: '8px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#10B981' }}>{completedProjects}</div>
+                    <div style={{ fontSize: '0.625rem', fontWeight: '600', color: '#64748B', textTransform: 'uppercase' }}>Done</div>
+                </div>
+            </div>
+
             {/* Actionable Alerts */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <h3 style={{ fontSize: '0.875rem', fontWeight: '600', color: '#94A3B8', textTransform: 'uppercase' }}>Attention Needed</h3>
@@ -111,33 +132,39 @@ const MobileDashboard = ({ engineers, projects, allocations }) => {
 
             {/* Quick Actions */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <button style={{
-                    background: '#3B82F6',
-                    color: 'white',
-                    border: 'none',
-                    padding: '1rem',
-                    borderRadius: '8px',
-                    fontWeight: '600',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                }}>
+                <button
+                    onClick={onNewRequest}
+                    style={{
+                        background: '#3B82F6',
+                        color: 'white',
+                        border: 'none',
+                        padding: '1rem',
+                        borderRadius: '8px',
+                        fontWeight: '600',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        cursor: 'pointer'
+                    }}>
                     <PlusCircle size={24} />
                     New Request
                 </button>
-                <button style={{
-                    background: 'white',
-                    color: '#0F172A',
-                    border: '1px solid #E2E8F0',
-                    padding: '1rem',
-                    borderRadius: '8px',
-                    fontWeight: '600',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                }}>
+                <button
+                    onClick={() => alert('Time Logging feature coming soon!')}
+                    style={{
+                        background: 'white',
+                        color: '#0F172A',
+                        border: '1px solid #E2E8F0',
+                        padding: '1rem',
+                        borderRadius: '8px',
+                        fontWeight: '600',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        cursor: 'pointer'
+                    }}>
                     <Clock size={24} color="#64748B" />
                     Log Time
                 </button>
