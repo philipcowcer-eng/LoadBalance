@@ -1,0 +1,131 @@
+warning: unused variable: `initials`
+   --> src/db.rs:338:13
+    |
+338 |         let initials: String = name.split_whitespace()
+    |             ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_initials`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: methods `hours_per_week` and `pm_base_hours` are never used
+   --> src/models.rs:111:12
+    |
+110 | impl Size {
+    | --------- methods in this implementation
+111 |     pub fn hours_per_week(&self) -> i32 {
+    |            ^^^^^^^^^^^^^^
+...
+120 |     pub fn pm_base_hours(&self) -> i32 {
+    |            ^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: enum `MilestoneStatus` is never used
+   --> src/models.rs:159:10
+    |
+159 | pub enum MilestoneStatus {
+    |          ^^^^^^^^^^^^^^^
+
+warning: enum `DependencyType` is never used
+   --> src/models.rs:176:10
+    |
+176 | pub enum DependencyType {
+    |          ^^^^^^^^^^^^^^
+
+warning: enum `ImpactEventType` is never used
+   --> src/models.rs:186:10
+    |
+186 | pub enum ImpactEventType {
+    |          ^^^^^^^^^^^^^^^
+
+warning: method `effective_capacity` is never used
+   --> src/models.rs:244:12
+    |
+243 | impl Engineer {
+    | ------------- method in this implementation
+244 |     pub fn effective_capacity(&self) -> i32 {
+    |            ^^^^^^^^^^^^^^^^^^
+
+warning: method `calculate_pm_hours` is never used
+   --> src/models.rs:276:12
+    |
+274 | impl Project {
+    | ------------ method in this implementation
+275 |     /// Calculate PM hours required based on size an...
+276 |     pub fn calculate_pm_hours(&self, engineer_count:...
+    |            ^^^^^^^^^^^^^^^^^^
+
+warning: struct `ImpactLog` is never constructed
+   --> src/models.rs:318:12
+    |
+318 | pub struct ImpactLog {
+    |            ^^^^^^^^^
+
+warning: struct `Milestone` is never constructed
+   --> src/models.rs:331:12
+    |
+331 | pub struct Milestone {
+    |            ^^^^^^^^^
+
+warning: struct `ProjectDependency` is never constructed
+   --> src/models.rs:345:12
+    |
+345 | pub struct ProjectDependency {
+    |            ^^^^^^^^^^^^^^^^^
+
+warning: struct `CreateUser` is never constructed
+   --> src/models.rs:369:12
+    |
+369 | pub struct CreateUser {
+    |            ^^^^^^^^^^
+
+warning: struct `UpdateAllocation` is never constructed
+   --> src/models.rs:447:12
+    |
+447 | pub struct UpdateAllocation {
+    |            ^^^^^^^^^^^^^^^^
+
+warning: struct `CreateMilestone` is never constructed
+   --> src/models.rs:464:12
+    |
+464 | pub struct CreateMilestone {
+    |            ^^^^^^^^^^^^^^^
+
+warning: struct `UpdateMilestone` is never constructed
+   --> src/models.rs:473:12
+    |
+473 | pub struct UpdateMilestone {
+    |            ^^^^^^^^^^^^^^^
+
+warning: struct `ProjectDetail` is never constructed
+   --> src/models.rs:494:12
+    |
+494 | pub struct ProjectDetail {
+    |            ^^^^^^^^^^^^^
+
+warning: struct `AllocationWithEngineer` is never constructed
+   --> src/models.rs:511:12
+    |
+511 | pub struct AllocationWithEngineer {
+    |            ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `HealthNoteWithAuthor` is never constructed
+   --> src/models.rs:519:12
+    |
+519 | pub struct HealthNoteWithAuthor {
+    |            ^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `ProjectListItem` is never constructed
+   --> src/models.rs:527:12
+    |
+527 | pub struct ProjectListItem {
+    |            ^^^^^^^^^^^^^^^
+
+warning: `resource_manager` (bin "resource_manager") generated 18 warnings (run `cargo fix --bin "resource_manager" -p resource_manager` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.29s
+     Running `target/debug/resource_manager`
+🚀 Network Resource Manager API (Rust) v2.0 listening on 127.0.0.1:8000
+   Endpoints:
+   - GET  /api/engineers
+   - GET  /api/projects
+   - GET  /api/projects/:id/allocations
+   - GET  /api/projects/:id/health-notes

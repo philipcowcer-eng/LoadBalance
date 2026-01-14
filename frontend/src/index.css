@@ -1,0 +1,107 @@
+:root {
+  --danger: #DC2626;
+  --warning: #D97706;
+  --optimal: #059669;
+  --neutral: #64748B;
+  --bg: #F8FAFC;
+  --card: #FFFFFF;
+  --text: #0F172A;
+  --text-muted: #64748B;
+  --border: #E2E8F0;
+  --primary: #2563EB;
+  --sidebar-width: 240px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Common Classes */
+.c-danger { color: var(--danger); }
+.c-warning { color: var(--warning); }
+.c-optimal { color: var(--optimal); }
+.c-neutral { color: var(--neutral); }
+
+.bg-danger { background: var(--danger); }
+.bg-warning { background: var(--warning); }
+.bg-optimal { background: var(--optimal); }
+.bg-neutral { background: var(--neutral); }
+
+.btn {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: white;
+  transition: all 0.2s;
+}
+
+.btn:hover {
+  background: #f1f5f9;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  border: none;
+}
+
+.btn-primary:hover {
+  background: #1d4ed8;
+}
+
+.card {
+  background: var(--card);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.card-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 0.875rem;
+  background: #F8FAFC;
+}
+
+.card-body {
+  padding: 1.25rem;
+}
+
+/* Status heat blocks */
+.heat-block {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-weight: 700;
+  color: white;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  min-height: 24px;
+}
+
+.block-danger { background: #EF4444; }
+.block-warning { background: #F59E0B; }
+.block-optimal { background: #10B981; }
+.block-low { background: #94A3B8; color: #475569; }
+.block-pto {
+  background: repeating-linear-gradient(45deg, #F1F5F9, #F1F5F9 4px, #E2E8F0 4px, #E2E8F0 8px);
+  color: #64748B;
+  font-size: 0.6rem;
+}

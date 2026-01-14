@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resource Capacity Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --danger: #EF4444;
+            --warning: #F59E0B;
+            --optimal: #10B981;
+            --neutral: #9CA3AF;
+            --bg: #F1F5F9;
+            --card: #FFFFFF;
+            --text: #1E293B;
+            --text-muted: #64748B;
+            --border: #E2E8F0;
+            --primary: #3B82F6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #1E3A5F 0%, #3B82F6 100%);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        /* Dashboard Grid */
+        .dashboard {
+            padding: 1.5rem 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* KPI Summary Row */
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .kpi-card {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 1.25rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .kpi-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .kpi-value.danger {
+            color: var(--danger);
+        }
+
+        .kpi-value.warning {
+            color: var(--warning);
+        }
+
+        .kpi-value.optimal {
+            color: var(--optimal);
+        }
+
+        .kpi-trend {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: auto;
+        }
+
+        .kpi-ring {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Two Column Layout */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Card */
+        .card {
+            background: var(--card);
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: var(--text);
+        }
+
+        .card-body {
+            padding: 1.25rem;
+        }
+
+        /* Bar Chart */
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            height: 160px;
+            gap: 6px;
+        }
+
+        .bar-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .bar {
+            width: 100%;
+            border-radius: 4px 4px 0 0;
+            min-height: 4px;
+        }
+
+        .bar-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        .bar-danger {
+            background: var(--danger);
+        }
+
+        .bar-warning {
+            background: var(--warning);
+        }
+
+        .bar-optimal {
+            background: var(--optimal);
+        }
+
+        .bar-low {
+            background: #CBD5E1;
+        }
+
+        /* Donut/Ring Chart */
+        .donut-container {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .donut {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: conic-gradient(var(--optimal) 0% 68%, var(--warning) 68% 85%, var(--danger) 85% 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .donut::after {
+            content: '';
+            width: 80px;
+            height: 80px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+        }
+
+        .donut-center {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        .donut-center .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .donut-center .label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+
+        .donut-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        /* Heatmap Table */
+        .heatmap-wrapper {
+            overflow-x: auto;
+        }
+
+        .heatmap {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+        }
+
+        .heatmap th,
+        .heatmap td {
+            padding: 0.6rem 0.5rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .heatmap th {
+            background: #F8FAFC;
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: 0.65rem;
+            text-transform: uppercase;
+        }
+
+        .heatmap th:first-child,
+        .heatmap td:first-child {
+            text-align: left;
+            padding-left: 1rem;
+            font-weight: 600;
+        }
+
+        .heatmap tbody tr:hover {
+            background: #F8FAFC;
+        }
+
+        /* Heat Colors */
+        .h-danger {
+            background: var(--danger);
+            color: white;
+            font-weight: 600;
+            border-radius: 4px;
+        }
+
+        .h-warning {
+            background: var(--warning);
+            color: white;
+            font-weight: 600;
+            border-radius: 4px;
+        }
+
+        .h-optimal {
+            background: var(--optimal);
+            color: white;
+            font-weight: 600;
+            border-radius: 4px;
+        }
+
+        .h-low {
+            background: #E2E8F0;
+            color: #475569;
+            border-radius: 4px;
+        }
+
+        .h-pto {
+            background: repeating-linear-gradient(45deg, #E2E8F0, #E2E8F0 2px, #F1F5F9 2px, #F1F5F9 4px);
+            color: #64748B;
+            font-size: 0.65rem;
+            border-radius: 4px;
+        }
+
+        .avail-row td {
+            background: #ECFDF5 !important;
+            color: #047857;
+            font-weight: 600;
+        }
+
+        .team-row {
+            background: #FFFBEB;
+        }
+
+        .team-row td:first-child {
+            color: var(--warning);
+        }
+
+        .engineer-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .engineer-name {
+            font-size: 0.8rem;
+        }
+
+        .engineer-role {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            font-weight: normal;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <h1>Network Engineering Capacity Dashboard</h1>
+        <div class="header-controls">
+            <button class="btn">Q4 2024 - Q1 2025</button>
+            <button class="btn">Export Report</button>
+        </div>
+    </div>
+
+    <div class="dashboard">
+
+        <!-- KPI Summary Row -->
+        <div class="kpi-row">
+            <div class="kpi-card">
+                <div class="kpi-label">Team Size</div>
+                <div class="kpi-value">4</div>
+                <div class="kpi-trend">Engineers Active</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Avg Utilization</div>
+                <div class="kpi-value warning">68%</div>
+                <div class="kpi-trend">13-Week Average</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Weeks Over Capacity</div>
+                <div class="kpi-value danger">3</div>
+                <div class="kpi-trend">Requires Attention</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Available Hours</div>
+                <div class="kpi-value optimal">512h</div>
+                <div class="kpi-trend">Next 13 Weeks</div>
+            </div>
+        </div>
+
+        <!-- Two Column: Charts -->
+        <div class="two-col">
+            <!-- Bar Chart -->
+            <div class="card">
+                <div class="card-header">Team Capacity vs Demand (13 Weeks)</div>
+                <div class="card-body">
+                    <div class="bar-chart">
+                        <div class="bar-item">
+                            <div class="bar bar-warning" style="height: 95%;"></div><span class="bar-label">W1</span>
+                        </div>
+                        <div class="bar-item">
+                            <div class="bar bar-danger" style="height: 100%;"></div><span class="bar-label">W2</span>
+                        </div>
+                        <div class="bar-item">
+                            <div class="bar bar-danger" style="height: 100%;"></div><span class="bar-label">W3</span>
+                        </div>
+                        <div class="bar-item">
+                            <div class="bar bar-warning" style="height: 88%;"></div><span class="bar-label">W4</span>
+                        </div>
+                        <div class="bar-item">
+                            <div class="bar bar-optimal" style="height: 75%;"></div><span class="bar-label">W5</span>
+                        </div>
+                        <div class="bar-item">
+                            <div class="bar bar-optimal" style="height: 70%;"></div><span class="bar-label">W6</span>
+                        </div>
+                        <div class="bar-item">
+                            <div class="bar bar-optimal" style="height: 60%;"></div><span class="bar-label">W7</span>
+                        </div>
+                        <div class="bar-item">
+                            <div class="bar bar-optimal" style="height: 55%;"></div><span class="bar-label">W8</span>
+                        </div>
+                        <div class="bar-item">
+                            <div class="bar bar-optimal" style="height: 50%;"></div><span class="bar-label">W9</span>
+                        </div>
+                        <div class="bar-item">
+                            <div class="bar bar-low" style="height: 45%;"></div><span class="bar-label">W10</span>
+                        </div>
+                        <div class="bar-item">
+                            <div class="bar bar-low" style="height: 40%;"></div><span class="bar-label">W11</span>
+                        </div>
+                        <div class="bar-item">
+                            <div class="bar bar-low" style="height: 35%;"></div><span class="bar-label">W12</span>
+                        </div>
+                        <div class="bar-item">
+                            <div class="bar bar-low" style="height: 30%;"></div><span class="bar-label">W13</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Donut Chart -->
+            <div class="card">
+                <div class="card-header">Utilization Distribution</div>
+                <div class="card-body">
+                    <div class="donut-container">
+                        <div class="donut">
+                            <div class="donut-center">
+                                <div class="value">68%</div>
+                                <div class="label">Avg</div>
+                            </div>
+                        </div>
+                        <div class="donut-legend">
+                            <div class="legend-item">
+                                <div class="legend-dot" style="background: var(--optimal);"></div> Optimal (50-84%): 7
+                                weeks
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-dot" style="background: var(--warning);"></div> High (85-100%): 2
+                                weeks
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-dot" style="background: var(--danger);"></div> Over Capacity: 2 weeks
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-dot" style="background: #CBD5E1;"></div> Under-Utilized: 2 weeks
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Heatmap Table -->
+        <div class="card">
+            <div class="card-header">Individual Utilization by Week</div>
+            <div class="card-body" style="padding: 0;">
+                <div class="heatmap-wrapper">
+                    <table class="heatmap">
+                        <thead>
+                            <tr>
+                                <th>Engineer</th>
+                                <th>Oct 21</th>
+                                <th>Oct 28</th>
+                                <th>Nov 4</th>
+                                <th>Nov 11</th>
+                                <th>Nov 18</th>
+                                <th>Nov 25</th>
+                                <th>Dec 2</th>
+                                <th>Dec 9</th>
+                                <th>Dec 16</th>
+                                <th>Dec 23</th>
+                                <th>Dec 30</th>
+                                <th>Jan 6</th>
+                                <th>Jan 13</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="team-row">
+                                <td>
+                                    <div class="engineer-info"><span class="engineer-name">TEAM TOTAL</span><span
+                                            class="engineer-role">4 Engineers</span></div>
+                                </td>
+                                <td class="h-warning">95%</td>
+                                <td class="h-danger">110%</td>
+                                <td class="h-danger">105%</td>
+                                <td class="h-warning">88%</td>
+                                <td class="h-optimal">75%</td>
+                                <td class="h-optimal">70%</td>
+                                <td class="h-optimal">60%</td>
+                                <td class="h-optimal">55%</td>
+                                <td class="h-optimal">50%</td>
+                                <td class="h-low">45%</td>
+                                <td class="h-low">40%</td>
+                                <td class="h-low">35%</td>
+                                <td class="h-low">30%</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="engineer-info"><span class="engineer-name">Sarah Chen</span><span
+                                            class="engineer-role">Route/Switch</span></div>
+                                </td>
+                                <td class="h-danger">110%</td>
+                                <td class="h-warning">95%</td>
+                                <td class="h-optimal">75%</td>
+                                <td class="h-pto">PTO</td>
+                                <td class="h-optimal">60%</td>
+                                <td class="h-low">25%</td>
+                                <td class="h-optimal">80%</td>
+                                <td class="h-optimal">70%</td>
+                                <td class="h-optimal">65%</td>
+                                <td class="h-low">40%</td>
+                                <td class="h-low">30%</td>
+                                <td class="h-pto">PTO</td>
+                                <td class="h-low">20%</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="engineer-info"><span class="engineer-name">Mike Davis</span><span
+                                            class="engineer-role">Firewall</span></div>
+                                </td>
+                                <td class="h-optimal">80%</td>
+                                <td class="h-optimal">70%</td>
+                                <td class="h-low">40%</td>
+                                <td class="h-low">30%</td>
+                                <td class="h-low">20%</td>
+                                <td class="h-pto">PTO</td>
+                                <td class="h-optimal">75%</td>
+                                <td class="h-optimal">80%</td>
+                                <td class="h-warning">90%</td>
+                                <td class="h-warning">85%</td>
+                                <td class="h-optimal">70%</td>
+                                <td class="h-optimal">60%</td>
+                                <td class="h-optimal">50%</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="engineer-info"><span class="engineer-name">R. Patel</span><span
+                                            class="engineer-role">NOC Ops</span></div>
+                                </td>
+                                <td class="h-warning">100%</td>
+                                <td class="h-warning">100%</td>
+                                <td class="h-optimal">50%</td>
+                                <td class="h-optimal">50%</td>
+                                <td class="h-low">0%</td>
+                                <td class="h-low">0%</td>
+                                <td class="h-optimal">80%</td>
+                                <td class="h-optimal">75%</td>
+                                <td class="h-optimal">60%</td>
+                                <td class="h-low">40%</td>
+                                <td class="h-low">30%</td>
+                                <td class="h-low">25%</td>
+                                <td class="h-low">20%</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="engineer-info"><span class="engineer-name">J. Kim</span><span
+                                            class="engineer-role">Wireless</span></div>
+                                </td>
+                                <td class="h-warning">90%</td>
+                                <td class="h-danger">115%</td>
+                                <td class="h-danger">105%</td>
+                                <td class="h-warning">95%</td>
+                                <td class="h-optimal">80%</td>
+                                <td class="h-optimal">70%</td>
+                                <td class="h-optimal">65%</td>
+                                <td class="h-optimal">55%</td>
+                                <td class="h-low">45%</td>
+                                <td class="h-low">35%</td>
+                                <td class="h-low">30%</td>
+                                <td class="h-low">25%</td>
+                                <td class="h-low">20%</td>
+                            </tr>
+                            <tr class="avail-row">
+                                <td>Available Hours</td>
+                                <td>8h</td>
+                                <td>0h</td>
+                                <td>0h</td>
+                                <td>16h</td>
+                                <td>40h</td>
+                                <td>48h</td>
+                                <td>32h</td>
+                                <td>36h</td>
+                                <td>40h</td>
+                                <td>56h</td>
+                                <td>64h</td>
+                                <td>72h</td>
+                                <td>80h</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+
+</html>

@@ -1,0 +1,283 @@
+/* App specific styles */
+.app-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: var(--sidebar-width);
+  background: #1E293B;
+  color: white;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  height: 100vh;
+  z-index: 100;
+}
+
+.sidebar-logo {
+  font-weight: 700;
+  font-size: 1.125rem;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nav-item {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #CBD5E1;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+
+.nav-item.active {
+  background: var(--primary);
+  color: white;
+}
+
+.nav-item:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.main-content {
+  margin-left: var(--sidebar-width);
+  flex: 1;
+  padding: 2rem;
+  overflow-x: hidden;
+}
+
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  background: white;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border);
+}
+
+/* Dashboard specific */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+}
+
+.full-width {
+  grid-column: span 4;
+}
+
+.kpi-card {
+  background: var(--card);
+  padding: 1.25rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  position: relative;
+}
+
+.kpi-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.kpi-main-value {
+  font-size: 1.875rem;
+  font-weight: 700;
+}
+
+.heatmap-matrix {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  table-layout: fixed;
+}
+
+.heatmap-matrix th {
+  background: #F8FAFC;
+  text-align: center;
+  padding: 0.6rem 0.25rem;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #64748B;
+  border-bottom: 1px solid var(--border);
+}
+
+.heatmap-matrix td {
+  text-align: center;
+  padding: 2px;
+  border-bottom: 1px solid var(--border);
+  height: 44px;
+}
+
+/* Priority Badges */
+.priority-badge {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.6rem;
+  font-weight: 700;
+}
+
+.p1 {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
+.p2 {
+  background: #FEF3C7;
+  color: #92400E;
+}
+
+.p3 {
+  background: #FEF9C3;
+  color: #854D0E;
+}
+
+.p4 {
+  background: #F1F5F9;
+  color: #475569;
+}
+
+/* Status Chips */
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-red {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
+.status-amber {
+  background: #FEF3C7;
+  color: #92400E;
+}
+
+.status-green {
+  background: #D1FAE5;
+  color: #065F46;
+}
+
+.rag-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.rag-red {
+  background: #EF4444;
+}
+
+.rag-amber {
+  background: #F59E0B;
+}
+
+.rag-green {
+  background: #10B981;
+}
+
+/* Modal */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-overlay.active {
+  display: flex;
+}
+
+.modal {
+  background: white;
+  border-radius: 12px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.form-textarea {
+  min-height: 80px;
+}
+
+.required {
+  color: var(--danger);
+}

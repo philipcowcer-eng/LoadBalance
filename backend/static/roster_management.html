@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roster Management - Detailed Resource View</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --danger: #DC2626;
+            --warning: #D97706;
+            --optimal: #059669;
+            --neutral: #64748B;
+            --bg: #F8FAFC;
+            --card: #FFFFFF;
+            --text: #0F172A;
+            --text-muted: #64748B;
+            --border: #E2E8F0;
+            --primary: #2563EB;
+            --sidebar-width: 240px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+            /* Prevent page-level horizontal scroll */
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: #1E293B;
+            color: white;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+        }
+
+        .sidebar-logo {
+            font-weight: 700;
+            font-size: 1.125rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-item {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            color: #CBD5E1;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .nav-item.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .nav-item:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-item svg {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        .nav-item .nav-text {
+            white-space: nowrap;
+        }
+
+        /* Responsive Sidebar - Collapse to Icons */
+        @media (max-width: 1200px) {
+            :root {
+                --sidebar-width: 64px;
+            }
+
+            .sidebar {
+                padding: 1rem 0.75rem;
+                align-items: center;
+            }
+
+            .sidebar-logo span {
+                display: none;
+            }
+
+            .sidebar-logo {
+                justify-content: center;
+            }
+
+            .nav-item {
+                padding: 0.75rem;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+
+            .nav-item .nav-text {
+                display: none;
+            }
+
+            .nav-item svg {
+                margin: 0;
+            }
+
+            .resource-grid {
+                grid-template-columns: 220px minmax(0, 1fr);
+            }
+        }
+
+        @media (max-width: 900px) {
+            .resource-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .resource-list {
+                max-height: 300px;
+                overflow-y: auto;
+            }
+        }
+
+        /* Main */
+        .main {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 2rem;
+            max-width: calc(100vw - var(--sidebar-width));
+            overflow-x: hidden;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        /* Layout */
+        .resource-grid {
+            display: grid;
+            grid-template-columns: 280px minmax(0, 1fr);
+            gap: 1.5rem;
+            align-items: start;
+            max-width: 100%;
+        }
+
+        /* Resource List Sidebar */
+        .resource-list {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .list-header {
+            padding: 1rem;
+            background: #F8FAFC;
+            border-bottom: 1px solid var(--border);
+            font-weight: 700;
+            font-size: 0.875rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .resource-item {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: background 0.2s;
+        }
+
+        .resource-item:hover {
+            background: #F1F5F9;
+        }
+
+        .resource-item.active {
+            background: #EFF6FF;
+            border-left: 4px solid var(--primary);
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            background: #E2E8F0;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #475569;
+            font-size: 0.75rem;
+        }
+
+        .res-info .name {
+            font-weight: 600;
+            font-size: 0.875rem;
+            display: block;
+        }
+
+        .res-info .role {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Detail View */
+        .detail-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            overflow: hidden;
+            min-width: 0;
+            /* Allow flex/grid shrinking */
+        }
+
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .profile-main {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .profile-avatar {
+            width: 64px;
+            height: 64px;
+            background: #DBEAFE;
+            color: #1E40AF;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        /* Stats Chips */
+        .stats-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-chip {
+            flex: 1;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #F8FAFC;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 0.4rem;
+            display: block;
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        /* Charts Section */
+        .chart-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .mini-card {
+            border: 1px solid var(--border);
+            padding: 1rem;
+            border-radius: 8px;
+        }
+
+        .mini-card-title {
+            font-size: 0.875rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Deep Work Indicator */
+        .deep-work-meter {
+            height: 8px;
+            background: #E2E8F0;
+            border-radius: 4px;
+            overflow: hidden;
+            display: flex;
+            margin-bottom: 0.5rem;
+        }
+
+        .meter-fill {
+            background: var(--optimal);
+            height: 100%;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 2px 6px;
+            background: #F1F5F9;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            margin-right: 4px;
+            color: #475569;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: white;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+        }
+
+        /* Multi-Week Allocation Matrix */
+        .matrix-container {
+            margin-top: 2rem;
+            overflow-x: auto;
+            overflow-y: visible;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: white;
+            padding-bottom: 0.5rem;
+            max-width: 100%;
+        }
+
+        .allocation-matrix {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8125rem;
+            table-layout: auto;
+            /* Removed min-width to allow responsive sizing */
+        }
+
+        .allocation-matrix th {
+            text-align: left;
+            padding: 0.75rem 1rem;
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border);
+            background: #F8FAFC;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .allocation-matrix td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .allocation-matrix .project-col {
+            position: sticky;
+            left: 0;
+            background: white;
+            z-index: 5;
+            min-width: 160px;
+            max-width: 200px;
+            font-weight: 600;
+            border-right: 2px solid var(--border);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .allocation-matrix .total-row {
+            background: #F8FAFC;
+            font-weight: 700;
+        }
+
+        .util-cell {
+            text-align: center;
+            font-weight: 600;
+            min-width: 55px;
+            max-width: 70px;
+        }
+
+        .status-danger {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+
+        /* > 105% */
+        .status-warning {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        /* 80-105% */
+        .status-optimal {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        /* < 80% */
+        .status-neutral {
+            background: white;
+            color: #64748B;
+            font-weight: 400;
+        }
+
+        /* < 70% */
+        .status-pto {
+            background: repeating-linear-gradient(45deg, #F8FAFC, #F8FAFC 5px, #E2E8F0 5px, #E2E8F0 10px);
+            color: #94A3B8;
+        }
+
+        .priority-badge {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.6rem;
+            font-weight: 700;
+            margin-left: 4px;
+        }
+
+        .p1 {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+
+        .p2 {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+    </style>
+</head>
+
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" class="c-optimal">
+                <path d="M12 20V10" />
+                <path d="M18 20V4" />
+                <path d="M6 20v-4" />
+            </svg>
+            <span>Network Planner</span>
+        </div>
+        <a href="heatmap_dashboard_v1.1.html" class="nav-item" title="Dashboard">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            <span class="nav-text">Dashboard</span>
+        </a>
+        <a href="#" class="nav-item active" title="Roster Management">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            <span class="nav-text">Roster Management</span>
+        </a>
+        <a href="#" class="nav-item" title="Project Registry">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <span class="nav-text">Project Registry</span>
+        </a>
+        <a href="#" class="nav-item" title="Scenario Builder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                <polyline points="2 17 12 22 22 17"></polyline>
+                <polyline points="2 12 12 17 22 12"></polyline>
+            </svg>
+            <span class="nav-text">Scenario Builder</span>
+        </a>
+        <a href="#" class="nav-item" style="margin-top: auto;" title="Support & Docs">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <span class="nav-text">Support & Docs</span>
+        </a>
+    </aside>
+
+    <main class="main">
+        <div class="header">
+            <h2>Roster Management</h2>
+            <div style="display: flex; gap: 0.75rem;">
+                <button class="btn">Import from HR</button>
+                <button class="btn btn-primary">+ Add Engineer</button>
+            </div>
+        </div>
+
+        <div class="resource-grid">
+            <!-- Sidebar Resource List -->
+            <div class="resource-list">
+                <div class="list-header">
+                    <span>Engineers</span>
+                    <span style="color: var(--primary); font-size: 0.75rem; font-weight: 500;">Filter All</span>
+                </div>
+                <div class="resource-item active">
+                    <div class="avatar">SC</div>
+                    <div class="res-info">
+                        <span class="name">Sarah Chen</span>
+                        <span class="role">R/S Lead • 110% load</span>
+                    </div>
+                </div>
+                <div class="resource-item">
+                    <div class="avatar">MD</div>
+                    <div class="res-info">
+                        <span class="name">Mike Davis</span>
+                        <span class="role">Firewall • 80% load</span>
+                    </div>
+                </div>
+                <div class="resource-item">
+                    <div class="avatar">RP</div>
+                    <div class="res-info">
+                        <span class="name">R. Patel</span>
+                        <span class="role">NOC Ops • 100% load</span>
+                    </div>
+                </div>
+                <div class="resource-item">
+                    <div class="avatar">JK</div>
+                    <div class="res-info">
+                        <span class="name">J. Kim</span>
+                        <span class="role">Wireless • 90% load</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Detail Section -->
+            <div class="detail-card">
+                <div class="detail-header">
+                    <div class="profile-main">
+                        <div class="profile-avatar">SC</div>
+                        <div>
+                            <h1 style="font-size: 1.5rem;">Sarah Chen</h1>
+                            <p style="color: var(--text-muted); font-size: 0.875rem;">Lead Routing & Switching • Staff
+                                Engineer</p>
+                            <div style="margin-top: 0.5rem;">
+                                <span class="tag">BGP</span><span class="tag">OSPF</span><span class="tag">Cisco
+                                    CCIE</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <button class="btn btn-primary"
+                            onclick="document.getElementById('allocationModal').style.display='flex'">Team Allocation
+                            Workbench</button>
+                        <button class="btn">Edit Profile</button>
+                    </div>
+                </div>
+
+                <div class="stats-row">
+                    <div class="stat-chip">
+                        <span class="stat-label">Effective Capacity</span>
+                        <span class="stat-value">32h<span
+                                style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;"> /
+                                40h</span></span>
+                    </div>
+                    <div class="stat-chip">
+                        <span class="stat-label">KTLO / Ops Tax</span>
+                        <span class="stat-value">8h<span
+                                style="font-size: 0.75rem; color: var(--danger); font-weight: normal;">
+                                (20%)</span></span>
+                    </div>
+                    <div class="stat-chip">
+                        <span class="stat-label">Allocated Hours</span>
+                        <span class="stat-value" style="color: var(--danger);">36h</span>
+                    </div>
+                    <div class="stat-chip">
+                        <span class="stat-label">Deep Work Ratio</span>
+                        <span class="stat-value" style="color: var(--optimal);">85%</span>
+                    </div>
+                </div>
+
+                <div class="chart-section" style="margin-top: 0; margin-bottom: 2rem;">
+                    <div class="mini-card">
+                        <div class="mini-card-title">Allocation Balance</div>
+                        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+                            <div style="width: 20%; height: 20px; background: #64748B; border-radius: 4px;"
+                                title="KTLO"></div>
+                            <span style="font-size: 0.75rem;">KTLO (8h)</span>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <div style="width: 80%; height: 20px; background: var(--primary); border-radius: 4px;"
+                                title="Projects"></div>
+                            <span style="font-size: 0.75rem;">Projects (32h)</span>
+                        </div>
+                    </div>
+                    <div class="mini-card">
+                        <div class="mini-card-title">Deep Work Compliance</div>
+                        <div class="deep-work-meter">
+                            <div class="meter-fill" style="width: 85%;"></div>
+                        </div>
+                        <p style="font-size: 0.7rem; color: var(--text-muted);">This engineer has 0 meetings on Tue/Thu,
+                            exceeding the 80% target.</p>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="margin-bottom: 0;">12-Week Allocation Summary</h3>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Showing data through Jan 13, 2025</div>
+                </div>
+
+                <div class="matrix-container">
+                    <table class="allocation-matrix">
+                        <thead>
+                            <tr>
+                                <th class="project-col">Project / Stream</th>
+                                <th class="util-cell">Oct 21</th>
+                                <th class="util-cell">Oct 28</th>
+                                <th class="util-cell">Nov 4</th>
+                                <th class="util-cell">Nov 11</th>
+                                <th class="util-cell">Nov 18</th>
+                                <th class="util-cell">Nov 25</th>
+                                <th class="util-cell">Dec 2</th>
+                                <th class="util-cell">Dec 9</th>
+                                <th class="util-cell">Dec 16</th>
+                                <th class="util-cell">Dec 23</th>
+                                <th class="util-cell">Dec 30</th>
+                                <th class="util-cell">Jan 6</th>
+                                <th class="util-cell">Jan 13</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="project-col">KTLO / Ops Tax</td>
+                                <td class="util-cell">8h</td>
+                                <td class="util-cell">8h</td>
+                                <td class="util-cell">8h</td>
+                                <td class="util-cell">8h</td>
+                                <td class="util-cell">8h</td>
+                                <td class="util-cell">8h</td>
+                                <td class="util-cell">8h</td>
+                                <td class="util-cell">8h</td>
+                                <td class="util-cell">8h</td>
+                                <td class="util-cell status-pto">PTO</td>
+                                <td class="util-cell status-pto">PTO</td>
+                                <td class="util-cell">8h</td>
+                                <td class="util-cell">8h</td>
+                            </tr>
+                            <tr>
+                                <td class="project-col">Core Router Refresh <span class="priority-badge p1">P1</span>
+                                </td>
+                                <td class="util-cell">20h</td>
+                                <td class="util-cell">30h</td>
+                                <td class="util-cell">24h</td>
+                                <td class="util-cell">20h</td>
+                                <td class="util-cell">10h</td>
+                                <td class="util-cell">-</td>
+                                <td class="util-cell">-</td>
+                                <td class="util-cell">-</td>
+                                <td class="util-cell">-</td>
+                                <td class="util-cell status-pto">PTO</td>
+                                <td class="util-cell status-pto">PTO</td>
+                                <td class="util-cell">-</td>
+                                <td class="util-cell">-</td>
+                            </tr>
+                            <tr>
+                                <td class="project-col">SD-WAN Migration <span class="priority-badge p2">P2</span></td>
+                                <td class="util-cell">8h</td>
+                                <td class="util-cell">6h</td>
+                                <td class="util-cell">10h</td>
+                                <td class="util-cell">8h</td>
+                                <td class="util-cell">12h</td>
+                                <td class="util-cell">20h</td>
+                                <td class="util-cell">16h</td>
+                                <td class="util-cell">12h</td>
+                                <td class="util-cell">12h</td>
+                                <td class="util-cell status-pto">PTO</td>
+                                <td class="util-cell status-pto">PTO</td>
+                                <td class="util-cell">4h</td>
+                                <td class="util-cell">4h</td>
+                            </tr>
+                            <tr>
+                                <td class="project-col">Automation Scripting <span class="priority-badge p2">P2</span>
+                                </td>
+                                <td class="util-cell">-</td>
+                                <td class="util-cell">-</td>
+                                <td class="util-cell">-</td>
+                                <td class="util-cell">-</td>
+                                <td class="util-cell">2h</td>
+                                <td class="util-cell">4h</td>
+                                <td class="util-cell">8h</td>
+                                <td class="util-cell">20h</td>
+                                <td class="util-cell">20h</td>
+                                <td class="util-cell status-pto">PTO</td>
+                                <td class="util-cell status-pto">PTO</td>
+                                <td class="util-cell">20h</td>
+                                <td class="util-cell">20h</td>
+                            </tr>
+                            <tr class="total-row">
+                                <td class="project-col">WEEKLY TOTAL</td>
+                                <td class="util-cell status-danger">36h</td>
+                                <td class="util-cell status-danger">44h</td>
+                                <td class="util-cell status-danger">42h</td>
+                                <td class="util-cell status-danger">36h</td>
+                                <td class="util-cell status-warning">32h</td>
+                                <td class="util-cell status-warning">32h</td>
+                                <td class="util-cell status-warning">32h</td>
+                                <td class="util-cell status-danger">40h</td>
+                                <td class="util-cell status-danger">40h</td>
+                                <td class="util-cell status-pto">0h</td>
+                                <td class="util-cell status-pto">0h</td>
+                                <td class="util-cell status-warning">32h</td>
+                                <td class="util-cell status-warning">32h</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Team Allocation Workbench (Epic 3 - Manager Pivot / Weekly View) -->
+    <div id="allocationModal" class="modal-overlay" style="display: none;">
+        <div class="modal-container">
+            <div class="modal-header">
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <h2>Team Allocation Workbench</h2>
+                    <span class="scenario-badge">📅 Week of Oct 21</span>
+                </div>
+                <div style="display: flex; gap: 0.75rem;">
+                    <button class="btn"
+                        onclick="document.getElementById('allocationModal').style.display='none'">Cancel</button>
+                    <button class="btn btn-primary">Save Grid</button>
+                </div>
+            </div>
+
+            <div class="modal-body workbench-body">
+                <!-- Center Panel: Team Board -->
+                <div class="workbench-main">
+                    <div class="workbench-toolbar">
+                        <h3>Team Allocations (Weekly View)</h3>
+                        <div class="toolbar-stats">
+                            <span class="stat-item">Avg Utilization: <strong>88%</strong></span>
+                            <span class="stat-item">Unassigned: <strong class="text-danger">12h</strong></span>
+                        </div>
+                    </div>
+
+                    <div class="team-grid weekly-view">
+                        <!-- Grid Header -->
+                        <div class="grid-row header-row">
+                            <div class="col-engineer">Engineer</div>
+                            <div class="col-projects">Assigned Projects (Priority Order)</div>
+                            <div class="col-metrics">Weekly Impact</div>
+                        </div>
+
+                        <!-- Row: Sarah Chen -->
+                        <div class="grid-row">
+                            <div class="col-engineer">
+                                <div class="eng-info">
+                                    <span class="eng-name">Sarah Chen</span>
+                                    <span class="eng-role">R/S Lead</span>
+                                </div>
+                                <div class="capacity-bar-container">
+                                    <div class="capacity-bar danger" style="width: 110%;"></div>
+                                </div>
+                                <div class="capacity-text danger">44h / 40h (110%)</div>
+                            </div>
+                            <div class="col-projects drop-zone">
+                                <div class="project-stack">
+                                    <!-- P1 Projects -->
+                                    <div class="project-card p1">
+                                        <div class="card-main">
+                                            <span class="card-title">🔒 Core Router Refresh</span>
+                                            <span class="card-hours">16h</span>
+                                        </div>
+                                        <div class="card-bar">
+                                            <div class="bar-fill p1" style="width: 40%;"></div>
+                                        </div>
+                                    </div>
+                                    <!-- P2 Projects -->
+                                    <div class="project-card p2">
+                                        <div class="card-main">
+                                            <span class="card-title">SD-WAN Migration</span>
+                                            <span class="card-hours">20h</span>
+                                        </div>
+                                        <div class="card-bar">
+                                            <div class="bar-fill p2" style="width: 50%;"></div>
+                                        </div>
+                                    </div>
+                                    <!-- KTLO -->
+                                    <div class="project-card ktlo">
+                                        <div class="card-main">
+                                            <span class="card-title">KTLO / Tax</span>
+                                            <span class="card-hours">8h</span>
+                                        </div>
+                                        <div class="card-bar">
+                                            <div class="bar-fill ktlo" style="width: 20%;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-metrics">
+                                <div class="metric-box success">
+                                    <span class="metric-label">Frag. Score</span>
+                                    <span class="metric-value">Low (3)</span>
+                                </div>
+                                <div class="metric-box success">
+                                    <span class="metric-label">P1 Focus</span>
+                                    <span class="metric-value">36%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Row: Mike Davis -->
+                        <div class="grid-row">
+                            <div class="col-engineer">
+                                <div class="eng-info">
+                                    <span class="eng-name">Mike Davis</span>
+                                    <span class="eng-role">Firewall</span>
+                                </div>
+                                <div class="capacity-bar-container">
+                                    <div class="capacity-bar success" style="width: 60%;"></div>
+                                </div>
+                                <div class="capacity-text success">24h / 40h (60%)</div>
+                            </div>
+                            <div class="col-projects drop-zone">
+                                <div class="project-stack">
+                                    <div class="project-card p2">
+                                        <div class="card-main">
+                                            <span class="card-title">Firewall Rules Audit</span>
+                                            <span class="card-hours">24h</span>
+                                        </div>
+                                        <div class="card-bar">
+                                            <div class="bar-fill p2" style="width: 60%;"></div>
+                                        </div>
+                                    </div>
+                                    <div class="empty-drop">
+                                        <span>+ Drag projects here</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-metrics">
+                                <div class="metric-box success">
+                                    <span class="metric-label">Frag. Score</span>
+                                    <span class="metric-value">Perfect (1)</span>
+                                </div>
+                                <div class="metric-box neutral">
+                                    <span class="metric-label">P1 Focus</span>
+                                    <span class="metric-value">0%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Row: J. Kim -->
+                        <div class="grid-row">
+                            <div class="col-engineer">
+                                <div class="eng-info">
+                                    <span class="eng-name">J. Kim</span>
+                                    <span class="eng-role">Wireless</span>
+                                </div>
+                                <div class="capacity-bar-container">
+                                    <div class="capacity-bar optimal" style="width: 100%;"></div>
+                                </div>
+                                <div class="capacity-text optimal">40h / 40h (100%)</div>
+                            </div>
+                            <div class="col-projects drop-zone">
+                                <div class="project-stack">
+                                    <div class="project-card p2">
+                                        <div class="card-main">
+                                            <span class="card-title">Wifi Site Survey (NYC)</span>
+                                            <span class="card-hours">40h</span>
+                                        </div>
+                                        <div class="card-bar">
+                                            <div class="bar-fill p2" style="width: 100%;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-metrics">
+                                <div class="metric-box success">
+                                    <span class="metric-label">Frag. Score</span>
+                                    <span class="metric-value">Perfect (1)</span>
+                                </div>
+                                <div class="metric-box neutral">
+                                    <span class="metric-label">P1 Focus</span>
+                                    <span class="metric-value">0%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PM Section (Collapsible) -->
+                        <div class="pm-section">
+                            <div class="pm-section-header" onclick="togglePMSection()">
+                                <span class="pm-toggle">▶</span>
+                                <span class="pm-title">Project Managers</span>
+                                <span class="pm-count">2 PMs • 12h assigned</span>
+                            </div>
+                            <div class="pm-rows" style="display: none;">
+                                <!-- PM Row: Alex Rivera -->
+                                <div class="grid-row pm-row">
+                                    <div class="col-engineer">
+                                        <div class="eng-info">
+                                            <span class="eng-name">Alex Rivera</span>
+                                            <span class="eng-role pm-badge">PM</span>
+                                        </div>
+                                        <div class="capacity-bar-container">
+                                            <div class="capacity-bar optimal" style="width: 75%;"></div>
+                                        </div>
+                                        <div class="capacity-text optimal">30h / 40h (75%)</div>
+                                    </div>
+                                    <div class="col-projects">
+                                        <div class="project-stack pm-assignments">
+                                            <div class="pm-assignment">
+                                                <span class="pm-project">Core Router Refresh</span>
+                                                <span class="pm-hours">6h</span>
+                                            </div>
+                                            <div class="pm-assignment">
+                                                <span class="pm-project">SD-WAN Migration</span>
+                                                <span class="pm-hours">4h</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-metrics">
+                                        <div class="metric-box success">
+                                            <span class="metric-label">Projects</span>
+                                            <span class="metric-value">2</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- PM Row: Jordan Lee -->
+                                <div class="grid-row pm-row">
+                                    <div class="col-engineer">
+                                        <div class="eng-info">
+                                            <span class="eng-name">Jordan Lee</span>
+                                            <span class="eng-role pm-badge">PM</span>
+                                        </div>
+                                        <div class="capacity-bar-container">
+                                            <div class="capacity-bar neutral" style="width: 15%;"></div>
+                                        </div>
+                                        <div class="capacity-text neutral">6h / 40h (15%)</div>
+                                    </div>
+                                    <div class="col-projects">
+                                        <div class="project-stack pm-assignments">
+                                            <div class="pm-assignment">
+                                                <span class="pm-project">Wifi Site Survey (NYC)</span>
+                                                <span class="pm-hours">6h</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-metrics">
+                                        <div class="metric-box success">
+                                            <span class="metric-label">Projects</span>
+                                            <span class="metric-value">1</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Panel: Unified Backlog -->
+                <div class="modal-panel sidebar-panel">
+                    <div class="panel-title">Uni-Backlog (US-3.2)</div>
+                    <div class="filter-row">
+                        <span class="filter-tag active">All</span>
+                        <span class="filter-tag">P1 Only</span>
+                        <span class="filter-tag">Unassigned</span>
+                    </div>
+
+                    <div class="backlog-items">
+                        <div class="backlog-card">
+                            <div class="card-top">
+                                <span>Switch Upgrade</span>
+                                <span class="tag p2">P2</span>
+                            </div>
+                            <div class="card-meta">4h • Needs: R/S Expert</div>
+                        </div>
+                        <div class="backlog-card">
+                            <div class="card-top">
+                                <span>vpn_config.py script</span>
+                                <span class="tag p3">P3</span>
+                            </div>
+                            <div class="card-meta">2h • Needs: Automation</div>
+                        </div>
+                        <div class="backlog-card">
+                            <div class="card-top">
+                                <span>Site Survey (NYC)</span>
+                                <span class="tag p2">P2</span>
+                            </div>
+                            <div class="card-meta">8h • Needs: Wireless</div>
+                        </div>
+                    </div>
+
+                    <div class="impact-preview">
+                        <div class="impact-title">Impact (US-3.3)</div>
+                        <div class="impact-stat">
+                            <span>Unassigned Hours</span>
+                            <span class="stat-bad">14h</span>
+                        </div>
+                        <div class="impact-stat">
+                            <span>Team Overload</span>
+                            <span class="stat-bad">1 Eng</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        /* Shared Modal Base */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-container {
+            background: white;
+            width: 95%;
+            max-width: 1400px;
+            height: 90vh;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Workbench Specifics */
+        .workbench-body {
+            flex: 1;
+            display: flex;
+            background: #F8FAFC;
+            overflow: hidden;
+            padding: 1.5rem;
+            gap: 1.5rem;
+        }
+
+        .workbench-main {
+            flex: 1;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .workbench-toolbar {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .toolbar-stats {
+            display: flex;
+            gap: 1.5rem;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        .team-grid {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Weekly View Grid Layout */
+        .weekly-view .grid-row {
+            display: grid;
+            grid-template-columns: 220px 1fr 180px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-row {
+            background: #F1F5F9;
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .grid-row>div {
+            padding: 1rem;
+            border-right: 1px solid var(--border);
+        }
+
+        /* Engineer Cell */
+        .col-engineer {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: #fff;
+        }
+
+        .eng-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .eng-role {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .capacity-bar-container {
+            width: 100%;
+            height: 6px;
+            background: #E2E8F0;
+            border-radius: 3px;
+            margin-bottom: 4px;
+            overflow: hidden;
+        }
+
+        .capacity-bar {
+            height: 100%;
+            border-radius: 3px;
+        }
+
+        .capacity-bar.optimal {
+            background: #16A34A;
+        }
+
+        .capacity-bar.success {
+            background: #60A5FA;
+        }
+
+        .capacity-bar.danger {
+            background: #DC2626;
+        }
+
+        .capacity-text {
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .capacity-text.optimal {
+            color: #16A34A;
+        }
+
+        .capacity-text.success {
+            color: #2563EB;
+        }
+
+        .capacity-text.danger {
+            color: #DC2626;
+        }
+
+        /* Project Stack */
+        .col-projects {
+            background: #F8FAFC;
+            padding: 0.75rem !important;
+        }
+
+        .project-stack {
+            display: flex;
+            flex-direction: row;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .project-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.5rem 0.75rem;
+            min-width: 160px;
+            max-width: 220px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .project-card.p1 {
+            border-left: 3px solid #DC2626;
+        }
+
+        .project-card.p2 {
+            border-left: 3px solid #EA580C;
+        }
+
+        .project-card.ktlo {
+            border-left: 3px solid #64748B;
+        }
+
+        .card-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+
+        .card-title {
+            font-weight: 600;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 120px;
+        }
+
+        .card-hours {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+        }
+
+        .card-bar {
+            width: 100%;
+            height: 4px;
+            background: #F1F5F9;
+            border-radius: 2px;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 2px;
+        }
+
+        .bar-fill.p1 {
+            background: #FECACA;
+        }
+
+        .bar-fill.p2 {
+            background: #FFEDD5;
+        }
+
+        .bar-fill.ktlo {
+            background: #E2E8F0;
+        }
+
+        .empty-drop {
+            border: 2px dashed #CBD5E1;
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            color: #94A3B8;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Metrics Column */
+        .col-metrics {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+
+        .metric-box {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+
+        .metric-box.warning {
+            background: #FFF7ED;
+            color: #9A3412;
+        }
+
+        .metric-box.success {
+            background: #F0FDF4;
+            color: #166534;
+        }
+
+        .metric-box.neutral {
+            background: #F8FAFC;
+            color: #64748B;
+        }
+
+        .metric-label {
+            color: var(--text-muted);
+            font-size: 0.7rem;
+        }
+
+        .metric-value {
+            font-weight: 700;
+        }
+
+        /* Sidebar Styles */
+        .sidebar-panel {
+            width: 300px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-title {
+            padding: 1rem;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border);
+            background: #F8FAFC;
+        }
+
+        .filter-row {
+            padding: 0.75rem;
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .filter-tag {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            background: #F1F5F9;
+            cursor: pointer;
+        }
+
+        .filter-tag.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .backlog-items {
+            padding: 1rem;
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .backlog-card {
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            cursor: grab;
+        }
+
+        .backlog-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        .card-top {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+
+        .tag {
+            font-size: 0.65rem;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-weight: 700;
+        }
+
+        .tag.p2 {
+            background: #FFEDD5;
+            color: #9A3412;
+        }
+
+        .tag.p3 {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        .card-meta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .impact-preview {
+            padding: 1rem;
+            background: #FFF1F2;
+            border-top: 1px solid #FECDD3;
+        }
+
+        .impact-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #BE123C;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+        }
+
+        .impact-stat {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            margin-bottom: 4px;
+        }
+
+        .stat-bad {
+            font-weight: 700;
+            color: #DC2626;
+        }
+
+        /* PM Section Styles */
+        .pm-section {
+            border-top: 2px solid #BFDBFE;
+            background: #F0F9FF;
+        }
+
+        .pm-section-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .pm-section-header:hover {
+            background: #E0F2FE;
+        }
+
+        .pm-toggle {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            transition: transform 0.2s;
+        }
+
+        .pm-toggle.expanded {
+            transform: rotate(90deg);
+        }
+
+        .pm-title {
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: #1E40AF;
+        }
+
+        .pm-count {
+            font-size: 0.75rem;
+            color: #3B82F6;
+            margin-left: auto;
+        }
+
+        .pm-row {
+            background: #F0F9FF !important;
+        }
+
+        .pm-badge {
+            background: #DBEAFE !important;
+            color: #1E40AF !important;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .pm-assignments {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .pm-assignment {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.375rem 0.75rem;
+            background: #DBEAFE;
+            border-radius: 6px;
+            font-size: 0.8rem;
+        }
+
+        .pm-project {
+            color: #1E40AF;
+            font-weight: 500;
+        }
+
+        .pm-hours {
+            font-weight: 700;
+            color: #3B82F6;
+        }
+
+        .capacity-bar.neutral {
+            background: #94A3B8;
+        }
+
+        .capacity-text.neutral {
+            color: #64748B;
+        }
+    </style>
+
+    <script>
+        function togglePMSection() {
+            const pmRows = document.querySelector('.pm-rows');
+            const toggle = document.querySelector('.pm-toggle');
+            if (pmRows.style.display === 'none') {
+                pmRows.style.display = 'block';
+                toggle.classList.add('expanded');
+            } else {
+                pmRows.style.display = 'none';
+                toggle.classList.remove('expanded');
+            }
+        }
+    </script>
+</body>
+
+</html>

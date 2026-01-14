@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resource Manager - Weekly View</title>
+    <style>
+        :root {
+            --danger: #EF4444;
+            --warning: #F59E0B;
+            --optimal: #10B981;
+            --neutral: #D1D5DB;
+            --blue: #3B82F6;
+            --bg-body: #F3F4F6;
+            --bg-card: #FFFFFF;
+            --text-primary: #1F2937;
+            --text-secondary: #6B7280;
+            --border-color: #E5E7EB;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        .top-bar {
+            background: #111827;
+            color: white;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            font-weight: 700;
+            font-size: 1.25rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn-filter {
+            background: #374151;
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+
+        .main-container {
+            display: flex;
+            gap: 1.5rem;
+            padding: 1.5rem;
+        }
+
+        /* Left: Main Board */
+        .planning-board {
+            flex: 1;
+        }
+
+        /* Week Header */
+        .week-header {
+            display: grid;
+            grid-template-columns: 220px repeat(6, 1fr);
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            margin-bottom: 0.75rem;
+            padding: 0 0.5rem;
+        }
+
+        /* Engineer Row Card */
+        .engineer-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            display: grid;
+            grid-template-columns: 220px repeat(6, 1fr);
+            overflow: hidden;
+        }
+
+        .engineer-info {
+            padding: 1rem;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .engineer-name {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .engineer-role {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .engineer-capacity {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+
+        .capacity-bar {
+            height: 6px;
+            background: #E5E7EB;
+            border-radius: 3px;
+            margin-top: 4px;
+            overflow: hidden;
+        }
+
+        .capacity-fill {
+            height: 100%;
+            border-radius: 3px;
+        }
+
+        /* Week Cell */
+        .week-cell {
+            padding: 0.75rem;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .week-cell:last-child {
+            border-right: none;
+        }
+
+        .week-summary {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .ws-danger {
+            background: #FEE2E2;
+            color: #B91C1C;
+        }
+
+        .ws-warning {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        .ws-optimal {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .ws-neutral {
+            background: #F3F4F6;
+            color: #6B7280;
+        }
+
+        .project-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .project-item {
+            font-size: 0.7rem;
+            padding: 4px 6px;
+            background: #F9FAFB;
+            border-left: 3px solid var(--blue);
+            border-radius: 2px;
+        }
+
+        .project-item.p1 {
+            border-left-color: var(--danger);
+            font-weight: 600;
+        }
+
+        .project-item .hours {
+            color: var(--text-secondary);
+        }
+
+        /* Right Sidebar */
+        .void-sidebar {
+            width: 280px;
+            background: #F9FAFB;
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+            height: fit-content;
+        }
+
+        .void-header {
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .void-count {
+            background: var(--danger);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 99px;
+            font-size: 0.7rem;
+        }
+
+        .void-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin-bottom: 0.75rem;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .tag-p1 {
+            background: #FECACA;
+            color: #991B1B;
+        }
+
+        .tag-p2 {
+            background: #DBEAFE;
+            color: #1E40AF;
+        }
+
+        .budget-alert {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: #FEF3C7;
+            border-radius: 6px;
+            border: 1px solid #F59E0B;
+            font-size: 0.75rem;
+            color: #92400E;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="top-bar">
+        <div class="logo">Network Engineering Capacity Planner</div>
+        <div class="controls">
+            <button class="btn-filter">Q4 2024</button>
+            <button class="btn-filter">View: Weekly</button>
+            <button class="btn-filter">Filter: All Roles</button>
+        </div>
+    </div>
+
+    <div class="main-container">
+
+        <div class="planning-board">
+
+            <div class="week-header">
+                <div>Engineer</div>
+                <div>Oct 21-25</div>
+                <div>Oct 28-Nov 1</div>
+                <div>Nov 4-8</div>
+                <div>Nov 11-15</div>
+                <div>Nov 18-22</div>
+                <div>Nov 25-29</div>
+            </div>
+
+            <!-- Sarah Chen: Overloaded -->
+            <div class="engineer-card">
+                <div class="engineer-info">
+                    <div class="engineer-name">Sarah Chen</div>
+                    <div class="engineer-role">Route/Switch Lead</div>
+                    <div class="engineer-capacity">
+                        Effective: 32h/wk (KTLO: 8h)
+                        <div class="capacity-bar">
+                            <div class="capacity-fill" style="width: 110%; background: var(--danger);"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="week-cell">
+                    <div class="week-summary ws-danger">110% (35h)</div>
+                    <div class="project-list">
+                        <div class="project-item p1">Core Upgrade <span class="hours">20h</span></div>
+                        <div class="project-item">Design Review <span class="hours">15h</span></div>
+                    </div>
+                </div>
+                <div class="week-cell">
+                    <div class="week-summary ws-warning">95% (30h)</div>
+                    <div class="project-list">
+                        <div class="project-item p1">Core Upgrade <span class="hours">24h</span></div>
+                        <div class="project-item">Docs <span class="hours">6h</span></div>
+                    </div>
+                </div>
+                <div class="week-cell">
+                    <div class="week-summary ws-optimal">75% (24h)</div>
+                    <div class="project-list">
+                        <div class="project-item">Design Review <span class="hours">16h</span></div>
+                        <div class="project-item">On-Call <span class="hours">8h</span></div>
+                    </div>
+                </div>
+                <div class="week-cell">
+                    <div class="week-summary ws-neutral">PTO</div>
+                </div>
+                <div class="week-cell">
+                    <div class="week-summary ws-optimal">60% (19h)</div>
+                    <div class="project-list">
+                        <div class="project-item">Wifi Refresh <span class="hours">19h</span></div>
+                    </div>
+                </div>
+                <div class="week-cell">
+                    <div class="week-summary ws-neutral">25% (8h)</div>
+                    <div class="project-list">
+                        <div class="project-item">On-Call <span class="hours">8h</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mike Davis: Healthy -->
+            <div class="engineer-card">
+                <div class="engineer-info">
+                    <div class="engineer-name">Mike Davis</div>
+                    <div class="engineer-role">Firewall Engineer</div>
+                    <div class="engineer-capacity">
+                        Effective: 36h/wk (KTLO: 4h)
+                        <div class="capacity-bar">
+                            <div class="capacity-fill" style="width: 80%; background: var(--optimal);"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="week-cell">
+                    <div class="week-summary ws-optimal">80% (29h)</div>
+                    <div class="project-list">
+                        <div class="project-item">FW Audit <span class="hours">20h</span></div>
+                        <div class="project-item">On-Call <span class="hours">9h</span></div>
+                    </div>
+                </div>
+                <div class="week-cell">
+                    <div class="week-summary ws-optimal">70% (25h)</div>
+                    <div class="project-list">
+                        <div class="project-item">FW Audit <span class="hours">25h</span></div>
+                    </div>
+                </div>
+                <div class="week-cell">
+                    <div class="week-summary ws-neutral">40% (14h)</div>
+                    <div class="project-list">
+                        <div class="project-item">Training <span class="hours">14h</span></div>
+                    </div>
+                </div>
+                <div class="week-cell">
+                    <div class="week-summary ws-neutral">30% (11h)</div>
+                </div>
+                <div class="week-cell">
+                    <div class="week-summary ws-neutral">20% (7h)</div>
+                </div>
+                <div class="week-cell">
+                    <div class="week-summary ws-neutral">PTO</div>
+                </div>
+            </div>
+
+            <!-- Patel: Ops Heavy -->
+            <div class="engineer-card">
+                <div class="engineer-info">
+                    <div class="engineer-name">R. Patel</div>
+                    <div class="engineer-role">Network Ops (NOC)</div>
+                    <div class="engineer-capacity">
+                        Effective: 16h/wk (KTLO: 24h)
+                        <div class="capacity-bar">
+                            <div class="capacity-fill" style="width: 100%; background: var(--warning);"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="week-cell">
+                    <div class="week-summary ws-warning">100% (16h)</div>
+                    <div class="project-list">
+                        <div class="project-item">Cloud Net <span class="hours">16h</span></div>
+                    </div>
+                </div>
+                <div class="week-cell">
+                    <div class="week-summary ws-warning">100% (16h)</div>
+                    <div class="project-list">
+                        <div class="project-item">Cloud Net <span class="hours">16h</span></div>
+                    </div>
+                </div>
+                <div class="week-cell">
+                    <div class="week-summary ws-optimal">50% (8h)</div>
+                </div>
+                <div class="week-cell">
+                    <div class="week-summary ws-optimal">50% (8h)</div>
+                </div>
+                <div class="week-cell">
+                    <div class="week-summary ws-neutral">0%</div>
+                </div>
+                <div class="week-cell">
+                    <div class="week-summary ws-neutral">0%</div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- The Void -->
+        <div class="void-sidebar">
+            <div class="void-header">
+                The Void (Unassigned)
+                <span class="void-count">56h Total</span>
+            </div>
+
+            <div class="void-card">
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                    <span class="tag tag-p1">P1 Critical</span>
+                    <span style="font-size:0.7rem; color:#999">24h needed</span>
+                </div>
+                <div style="font-weight:600; font-size:0.875rem;">Data Center Move</div>
+                <div style="font-size:0.7rem; color:var(--text-secondary);">Displaced by Incident #9921</div>
+            </div>
+
+            <div class="void-card">
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                    <span class="tag tag-p2">P2 Strategic</span>
+                    <span style="font-size:0.7rem; color:#999">32h needed</span>
+                </div>
+                <div style="font-weight:600; font-size:0.875rem;">SD-WAN Expansion</div>
+            </div>
+
+            <div class="budget-alert">
+                <strong>Budget Alert:</strong><br>
+                Sustained Unassigned Demand > 40h for 3 weeks. Consider supplemental resources.
+            </div>
+        </div>
+
+    </div>
+
+</body>
+
+</html>

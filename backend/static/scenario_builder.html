@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scenario Builder - What-If Planning</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --danger: #DC2626;
+            --warning: #D97706;
+            --optimal: #059669;
+            --neutral: #64748B;
+            --bg: #F8FAFC;
+            --card: #FFFFFF;
+            --text: #0F172A;
+            --text-muted: #64748B;
+            --border: #E2E8F0;
+            --primary: #2563EB;
+            --sidebar-width: 240px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: #1E293B;
+            color: white;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+        }
+
+        .sidebar-logo {
+            font-weight: 700;
+            font-size: 1.125rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-item {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            color: #CBD5E1;
+            text-decoration: none;
+            display: block;
+        }
+
+        .nav-item.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .nav-item:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Main Layout */
+        .main {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 2rem;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .scenario-badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: #EFF6FF;
+            color: var(--primary);
+            border: 1px solid #BFDBFE;
+        }
+
+        /* Layout Grid */
+        .scenario-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 1.5rem;
+            align-items: start;
+        }
+
+        /* Scenario List Sidebar */
+        .scenario-list {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .list-header {
+            padding: 1rem;
+            background: #F8FAFC;
+            border-bottom: 1px solid var(--border);
+            font-weight: 700;
+            font-size: 0.875rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .scenario-item {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .scenario-item:hover {
+            background: #F1F5F9;
+        }
+
+        .scenario-item.active {
+            background: #EFF6FF;
+            border-left: 4px solid var(--primary);
+        }
+
+        .scenario-item.baseline {
+            background: #F8FAFC;
+        }
+
+        .scenario-name {
+            font-weight: 600;
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .baseline-badge {
+            padding: 2px 6px;
+            background: #E2E8F0;
+            color: #475569;
+            border-radius: 4px;
+            font-size: 0.6rem;
+            font-weight: 700;
+        }
+
+        .scenario-meta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: white;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+            border: none;
+        }
+
+        .btn-small {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        /* Main Content */
+        .content-area {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* Simulation Controls */
+        .controls-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .controls-header {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .control-section {
+            padding: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #F8FAFC;
+        }
+
+        .control-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 0.75rem;
+            display: block;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .input-field {
+            flex: 1;
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.875rem;
+        }
+
+        .slider-container {
+            margin-bottom: 1rem;
+        }
+
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #E2E8F0;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+        }
+
+        .slider-value {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* Impact Summary */
+        .impact-summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            padding: 1rem;
+            background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+            border-radius: 8px;
+            border: 1px solid #BFDBFE;
+        }
+
+        .impact-metric {
+            text-align: center;
+        }
+
+        .impact-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #1E40AF;
+            text-transform: uppercase;
+            margin-bottom: 0.25rem;
+        }
+
+        .impact-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .impact-positive {
+            color: var(--optimal);
+        }
+
+        .impact-negative {
+            color: var(--danger);
+        }
+
+        .impact-neutral {
+            color: var(--text-muted);
+        }
+
+        /* Comparison View */
+        .comparison-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .comparison-header {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .comparison-section {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .section-title {
+            font-size: 0.875rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .baseline-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #64748B;
+        }
+
+        .scenario-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--primary);
+        }
+
+        /* Mini Heatmap */
+        .mini-heatmap {
+            display: grid;
+            grid-template-columns: 80px repeat(4, 1fr);
+            gap: 2px;
+            font-size: 0.7rem;
+        }
+
+        .heatmap-header {
+            background: #F8FAFC;
+            padding: 0.5rem 0.25rem;
+            text-align: center;
+            font-weight: 700;
+            color: var(--text-muted);
+        }
+
+        .heatmap-row-label {
+            background: #F8FAFC;
+            padding: 0.5rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+
+        .heatmap-cell {
+            padding: 0.5rem;
+            text-align: center;
+            font-weight: 700;
+            color: white;
+            border-radius: 4px;
+        }
+
+        .cell-danger {
+            background: #EF4444;
+        }
+
+        .cell-warning {
+            background: #F59E0B;
+        }
+
+        .cell-optimal {
+            background: #10B981;
+        }
+
+        .cell-neutral {
+            background: #94A3B8;
+        }
+
+        /* Delta Cards */
+        .delta-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .delta-card {
+            padding: 1rem;
+            border-radius: 8px;
+            border: 2px solid;
+            text-align: center;
+        }
+
+        .delta-card.positive {
+            background: #D1FAE5;
+            border-color: #059669;
+        }
+
+        .delta-card.negative {
+            background: #FEE2E2;
+            border-color: #DC2626;
+        }
+
+        .delta-card.neutral {
+            background: #F1F5F9;
+            border-color: #CBD5E1;
+        }
+
+        .delta-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+
+        .delta-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        /* Action Bar */
+        .action-bar {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+
+        /* Void Trend Chart (US-4.4) */
+        .trend-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .trend-header {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .trend-chart-container {
+            height: 160px;
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+            padding: 1rem 0;
+            border-bottom: 2px solid var(--border);
+            position: relative;
+        }
+
+        .trend-bar-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .trend-bar {
+            width: 100%;
+            max-width: 40px;
+            border-radius: 4px 4px 0 0;
+            transition: height 0.3s ease;
+        }
+
+        .bar-baseline {
+            background: #94A3B8;
+        }
+
+        .bar-scenario {
+            background: linear-gradient(180deg, var(--primary) 0%, #60A5FA 100%);
+        }
+
+        .trend-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        .trend-legend {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            margin-top: 1rem;
+            font-size: 0.75rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        .insight-banner {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: linear-gradient(135deg, #FEF9C3 0%, #FEF3C7 100%);
+            border-radius: 8px;
+            border-left: 4px solid var(--warning);
+            font-size: 0.8125rem;
+        }
+
+        .insight-title {
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+    </style>
+</head>
+
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20V10" />
+                <path d="M18 20V4" />
+                <path d="M6 20v-4" />
+            </svg>
+            <span>Network Planner</span>
+        </div>
+        <a href="heatmap_dashboard_v1.1.html" class="nav-item">Dashboard</a>
+        <a href="roster_management.html" class="nav-item">Roster Management</a>
+        <a href="project_registry.html" class="nav-item">Project Registry</a>
+        <a href="#" class="nav-item active">Scenario Builder</a>
+        <div class="nav-item" style="margin-top: auto;">Support & Docs</div>
+    </aside>
+
+    <main class="main">
+        <div class="header">
+            <div class="header-left">
+                <h2>Scenario Builder</h2>
+                <span class="scenario-badge">✏️ Editing: Q3 Expansion Plan</span>
+            </div>
+            <div style="display: flex; gap: 0.75rem;">
+                <button class="btn">Discard Changes</button>
+                <button class="btn btn-primary">Apply to Live Plan</button>
+            </div>
+        </div>
+
+        <div class="scenario-grid">
+            <!-- Scenario List Sidebar -->
+            <div class="scenario-list">
+                <div class="list-header">
+                    <span>Scenarios</span>
+                    <button class="btn btn-small btn-primary">+ New</button>
+                </div>
+
+                <div class="scenario-item baseline">
+                    <div class="scenario-name">
+                        <span class="baseline-badge">BASELINE</span>
+                        Current Live Plan
+                    </div>
+                    <div class="scenario-meta">Last sync: 10 min ago</div>
+                </div>
+
+                <div class="scenario-item active">
+                    <div class="scenario-name">
+                        Q3 Expansion Plan
+                    </div>
+                    <div class="scenario-meta">Created: Jan 8, 2025</div>
+                </div>
+
+                <div class="scenario-item">
+                    <div class="scenario-name">
+                        Priority Shift Test
+                    </div>
+                    <div class="scenario-meta">Created: Jan 5, 2025</div>
+                </div>
+
+                <div class="scenario-item">
+                    <div class="scenario-name">
+                        Delayed Timeline
+                    </div>
+                    <div class="scenario-meta">Created: Dec 20, 2024</div>
+                </div>
+            </div>
+
+            <!-- Main Content Area -->
+            <div class="content-area">
+                <!-- Simulation Controls -->
+                <div class="controls-card">
+                    <div class="controls-header">
+                        <span>Simulation Controls</span>
+                        <button class="btn btn-small">Reset All</button>
+                    </div>
+
+                    <div class="control-grid">
+                        <!-- Add Resources (US-6.2) -->
+                        <div class="control-section">
+                            <label class="control-label">Add Resources (US-6.2)</label>
+                            <div class="input-group">
+                                <input type="text" class="input-field" placeholder="Role (e.g., Firewall)"
+                                    value="Network Engineer">
+                                <button class="btn btn-small btn-primary">+</button>
+                            </div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">
+                                <strong>2 TBD Resources</strong> added<br>
+                                • Network Engineer (40h)<br>
+                                • Firewall Specialist (32h)
+                            </div>
+                        </div>
+
+                        <!-- Adjust Timeline (US-6.3) -->
+                        <div class="control-section">
+                            <label class="control-label">Adjust Timeline (US-6.3)</label>
+                            <div style="margin-bottom: 0.75rem;">
+                                <div style="font-size: 0.75rem; font-weight: 600; margin-bottom: 0.5rem;">SD-WAN
+                                    Migration</div>
+                                <div class="slider-container">
+                                    <input type="range" min="-8" max="8" value="2" class="slider">
+                                    <div class="slider-value">Start: +2 weeks (Nov 18)</div>
+                                </div>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.75rem; font-weight: 600; margin-bottom: 0.5rem;">Wireless
+                                    Upgrade</div>
+                                <div class="slider-container">
+                                    <input type="range" min="-8" max="8" value="-4" class="slider">
+                                    <div class="slider-value">Start: -4 weeks (Sep 23)</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Priority Reorder -->
+                        <div class="control-section">
+                            <label class="control-label">Priority Reorder</label>
+                            <div style="font-size: 0.75rem;">
+                                <div
+                                    style="padding: 0.5rem; background: white; border: 1px solid var(--border); border-radius: 4px; margin-bottom: 0.5rem; cursor: move;">
+                                    <span style="color: #991B1B; font-weight: 700;">P1:</span> Core Router Refresh
+                                </div>
+                                <div
+                                    style="padding: 0.5rem; background: white; border: 1px solid var(--border); border-radius: 4px; margin-bottom: 0.5rem; cursor: move;">
+                                    <span style="color: #92400E; font-weight: 700;">P2:</span> Wireless Upgrade ↑
+                                </div>
+                                <div
+                                    style="padding: 0.5rem; background: white; border: 1px solid var(--border); border-radius: 4px; cursor: move;">
+                                    <span style="color: #92400E; font-weight: 700;">P2:</span> SD-WAN Migration
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Impact Summary -->
+                    <div class="impact-summary">
+                        <div class="impact-metric">
+                            <div class="impact-label">Void Hours</div>
+                            <div class="impact-value impact-positive">-120h</div>
+                        </div>
+                        <div class="impact-metric">
+                            <div class="impact-label">Over-Allocated</div>
+                            <div class="impact-value impact-positive">-1 Eng</div>
+                        </div>
+                        <div class="impact-metric">
+                            <div class="impact-label">Projects Affected</div>
+                            <div class="impact-value impact-neutral">3</div>
+                        </div>
+                        <div class="impact-metric">
+                            <div class="impact-label">Timeline Impact</div>
+                            <div class="impact-value impact-neutral">+2 wks</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Budget Justification: Void Work Trend (US-4.4) -->
+                <div class="trend-card">
+                    <div class="trend-header">
+                        <span>📊 Budget Justification: "The Void" Trend (US-4.4)</span>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">Last 12 Weeks</span>
+                    </div>
+
+                    <div class="trend-chart-container">
+                        <div class="trend-bar-group">
+                            <div class="trend-bar bar-baseline" style="height: 90px;" title="Baseline: 180h"></div>
+                            <div class="trend-bar bar-scenario" style="height: 45px;" title="Scenario: 90h"></div>
+                            <div class="trend-label">W1</div>
+                        </div>
+                        <div class="trend-bar-group">
+                            <div class="trend-bar bar-baseline" style="height: 100px;" title="Baseline: 200h"></div>
+                            <div class="trend-bar bar-scenario" style="height: 50px;" title="Scenario: 100h"></div>
+                            <div class="trend-label">W2</div>
+                        </div>
+                        <div class="trend-bar-group">
+                            <div class="trend-bar bar-baseline" style="height: 110px;" title="Baseline: 220h"></div>
+                            <div class="trend-bar bar-scenario" style="height: 55px;" title="Scenario: 110h"></div>
+                            <div class="trend-label">W3</div>
+                        </div>
+                        <div class="trend-bar-group">
+                            <div class="trend-bar bar-baseline" style="height: 95px;" title="Baseline: 190h"></div>
+                            <div class="trend-bar bar-scenario" style="height: 48px;" title="Scenario: 95h"></div>
+                            <div class="trend-label">W4</div>
+                        </div>
+                        <div class="trend-bar-group">
+                            <div class="trend-bar bar-baseline" style="height: 120px;" title="Baseline: 240h"></div>
+                            <div class="trend-bar bar-scenario" style="height: 60px;" title="Scenario: 120h"></div>
+                            <div class="trend-label">W5</div>
+                        </div>
+                        <div class="trend-bar-group">
+                            <div class="trend-bar bar-baseline" style="height: 130px;" title="Baseline: 260h"></div>
+                            <div class="trend-bar bar-scenario" style="height: 65px;" title="Scenario: 130h"></div>
+                            <div class="trend-label">W6</div>
+                        </div>
+                        <div class="trend-bar-group">
+                            <div class="trend-bar bar-baseline" style="height: 140px;" title="Baseline: 280h"></div>
+                            <div class="trend-bar bar-scenario" style="height: 70px;" title="Scenario: 140h"></div>
+                            <div class="trend-label">W7</div>
+                        </div>
+                        <div class="trend-bar-group">
+                            <div class="trend-bar bar-baseline" style="height: 135px;" title="Baseline: 270h"></div>
+                            <div class="trend-bar bar-scenario" style="height: 68px;" title="Scenario: 135h"></div>
+                            <div class="trend-label">W8</div>
+                        </div>
+                        <div class="trend-bar-group">
+                            <div class="trend-bar bar-baseline" style="height: 145px;" title="Baseline: 290h"></div>
+                            <div class="trend-bar bar-scenario" style="height: 72px;" title="Scenario: 145h"></div>
+                            <div class="trend-label">W9</div>
+                        </div>
+                        <div class="trend-bar-group">
+                            <div class="trend-bar bar-baseline" style="height: 150px;" title="Baseline: 300h"></div>
+                            <div class="trend-bar bar-scenario" style="height: 75px;" title="Scenario: 150h"></div>
+                            <div class="trend-label">W10</div>
+                        </div>
+                        <div class="trend-bar-group">
+                            <div class="trend-bar bar-baseline" style="height: 155px;" title="Baseline: 310h"></div>
+                            <div class="trend-bar bar-scenario" style="height: 78px;" title="Scenario: 155h"></div>
+                            <div class="trend-label">W11</div>
+                        </div>
+                        <div class="trend-bar-group">
+                            <div class="trend-bar bar-baseline" style="height: 160px;" title="Baseline: 320h"></div>
+                            <div class="trend-bar bar-scenario" style="height: 40px;" title="Scenario: 80h"></div>
+                            <div class="trend-label">W12</div>
+                        </div>
+                    </div>
+
+                    <div class="trend-legend">
+                        <div class="legend-item">
+                            <div class="legend-dot bar-baseline"></div>
+                            <span>Current Plan (Void Hours)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot bar-scenario"></div>
+                            <span>With 2 TBD Resources</span>
+                        </div>
+                    </div>
+
+                    <div class="insight-banner">
+                        <div class="insight-title">💡 Budget Insight</div>
+                        <div>Adding <strong>2 TBD resources</strong> would reduce unassigned "Void Work" by <strong>50%
+                                on average</strong> over the next 12 weeks, clearing approximately <strong>1,440
+                                hours</strong> of demand. Estimated cost: <strong>$280k/year</strong>. ROI:
+                            <strong>~$500k in project value unlocked</strong>.</div>
+                    </div>
+                </div>
+
+                <!-- Comparison View -->
+                <div class="comparison-card">
+                    <div class="comparison-header">Side-by-Side Comparison (Real-Time Heatmap Updates)</div>
+
+                    <div class="comparison-grid">
+                        <!-- Baseline -->
+                        <div class="comparison-section">
+                            <div class="section-title">
+                                <div class="baseline-indicator"></div>
+                                Current Live Plan
+                            </div>
+
+                            <div class="mini-heatmap">
+                                <div class="heatmap-header"></div>
+                                <div class="heatmap-header">Oct 21</div>
+                                <div class="heatmap-header">Oct 28</div>
+                                <div class="heatmap-header">Nov 4</div>
+                                <div class="heatmap-header">Nov 11</div>
+
+                                <div class="heatmap-row-label">S. Chen</div>
+                                <div class="heatmap-cell cell-warning">95%</div>
+                                <div class="heatmap-cell cell-danger">110%</div>
+                                <div class="heatmap-cell cell-danger">105%</div>
+                                <div class="heatmap-cell cell-warning">88%</div>
+
+                                <div class="heatmap-row-label">M. Davis</div>
+                                <div class="heatmap-cell cell-warning">80%</div>
+                                <div class="heatmap-cell cell-optimal">70%</div>
+                                <div class="heatmap-cell cell-neutral">40%</div>
+                                <div class="heatmap-cell cell-neutral">30%</div>
+
+                                <div class="heatmap-row-label">J. Kim</div>
+                                <div class="heatmap-cell cell-warning">90%</div>
+                                <div class="heatmap-cell cell-danger">115%</div>
+                                <div class="heatmap-cell cell-danger">105%</div>
+                                <div class="heatmap-cell cell-optimal">65%</div>
+                            </div>
+                        </div>
+
+                        <!-- Scenario -->
+                        <div class="comparison-section">
+                            <div class="section-title">
+                                <div class="scenario-indicator"></div>
+                                Q3 Expansion Plan
+                            </div>
+
+                            <div class="mini-heatmap">
+                                <div class="heatmap-header"></div>
+                                <div class="heatmap-header">Oct 21</div>
+                                <div class="heatmap-header">Oct 28</div>
+                                <div class="heatmap-header">Nov 4</div>
+                                <div class="heatmap-header">Nov 11</div>
+
+                                <div class="heatmap-row-label">S. Chen</div>
+                                <div class="heatmap-cell cell-optimal">75%</div>
+                                <div class="heatmap-cell cell-warning">90%</div>
+                                <div class="heatmap-cell cell-warning">85%</div>
+                                <div class="heatmap-cell cell-optimal">70%</div>
+
+                                <div class="heatmap-row-label">M. Davis</div>
+                                <div class="heatmap-cell cell-optimal">75%</div>
+                                <div class="heatmap-cell cell-optimal">70%</div>
+                                <div class="heatmap-cell cell-optimal">65%</div>
+                                <div class="heatmap-cell cell-neutral">50%</div>
+
+                                <div class="heatmap-row-label">J. Kim</div>
+                                <div class="heatmap-cell cell-warning">85%</div>
+                                <div class="heatmap-cell cell-warning">95%</div>
+                                <div class="heatmap-cell cell-warning">90%</div>
+                                <div class="heatmap-cell cell-optimal">65%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Delta Cards -->
+                    <div class="delta-cards">
+                        <div class="delta-card positive">
+                            <div class="delta-label">Void Work Cleared</div>
+                            <div class="delta-value impact-positive">-120h</div>
+                        </div>
+                        <div class="delta-card positive">
+                            <div class="delta-label">Over-Allocated Fixed</div>
+                            <div class="delta-value impact-positive">-1</div>
+                        </div>
+                        <div class="delta-card neutral">
+                            <div class="delta-label">New Cost (2 TBD)</div>
+                            <div class="delta-value">+$280k/yr</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Bar -->
+                <div class="action-bar">
+                    <button class="btn">Save Scenario</button>
+                    <button class="btn btn-danger">Discard Changes</button>
+                    <button class="btn btn-primary">Apply to Live Plan →</button>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>

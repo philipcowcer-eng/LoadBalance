@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Registry - Network Infrastructure Projects</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --danger: #DC2626;
+            --warning: #D97706;
+            --optimal: #059669;
+            --neutral: #64748B;
+            --bg: #F8FAFC;
+            --card: #FFFFFF;
+            --text: #0F172A;
+            --text-muted: #64748B;
+            --border: #E2E8F0;
+            --primary: #2563EB;
+            --sidebar-width: 240px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: #1E293B;
+            color: white;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+        }
+
+        .sidebar-logo {
+            font-weight: 700;
+            font-size: 1.125rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-item {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            color: #CBD5E1;
+            text-decoration: none;
+            display: block;
+        }
+
+        .nav-item.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .nav-item:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Main Layout */
+        .main {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 2rem;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        /* Project Grid Layout */
+        .project-grid {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 1.5rem;
+            align-items: start;
+        }
+
+        /* Project List Sidebar */
+        .project-list {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            max-height: calc(100vh - 180px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .list-header {
+            padding: 1rem;
+            background: #F8FAFC;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.875rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 0.5rem;
+            font-size: 0.7rem;
+        }
+
+        .filter-chip {
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: white;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .filter-chip.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* Status Tabs */
+        .status-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .status-tab {
+            padding: 0.5rem 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .status-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .status-tab .count {
+            background: #E2E8F0;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.65rem;
+            margin-left: 4px;
+        }
+
+        .status-tab.active .count {
+            background: #DBEAFE;
+            color: var(--primary);
+        }
+
+        /* Size Badge */
+        .size-badge {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.6rem;
+            font-weight: 700;
+            background: #E0E7FF;
+            color: #3730A3;
+        }
+
+        .size-s {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .size-m {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        .size-l {
+            background: #FED7AA;
+            color: #9A3412;
+        }
+
+        .size-xl {
+            background: #FECACA;
+            color: #991B1B;
+        }
+
+        .project-list-scroll {
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .project-item {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .project-item:hover {
+            background: #F1F5F9;
+        }
+
+        .project-item.active {
+            background: #EFF6FF;
+            border-left: 4px solid var(--primary);
+        }
+
+        .project-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .project-name {
+            font-weight: 600;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .priority-badge {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.6rem;
+            font-weight: 700;
+        }
+
+        .p1 {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+
+        .p2 {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        .p3 {
+            background: #FEF9C3;
+            color: #854D0E;
+        }
+
+        .p4 {
+            background: #F1F5F9;
+            color: #475569;
+        }
+
+        .rag-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .rag-red {
+            background: #EF4444;
+        }
+
+        .rag-amber {
+            background: #F59E0B;
+        }
+
+        .rag-green {
+            background: #10B981;
+        }
+
+        .project-meta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Project Detail Card */
+        .detail-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 1.5rem;
+        }
+
+        .project-title-section {
+            flex: 1;
+        }
+
+        .project-title-section h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .project-subtitle {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .status-row {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-red {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+
+        .status-amber {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        .status-green {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: white;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            padding: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #F8FAFC;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 0.4rem;
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        /* Section Headers */
+        .section-header {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* Resource Requirements Table */
+        .resource-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+            margin-bottom: 2rem;
+        }
+
+        .resource-table th {
+            text-align: left;
+            padding: 0.75rem;
+            background: #F8FAFC;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .resource-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .engineer-cell {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .avatar-small {
+            width: 28px;
+            height: 28px;
+            background: #E2E8F0;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #475569;
+            font-size: 0.65rem;
+        }
+
+        /* Impact Log */
+        .impact-log {
+            margin-bottom: 2rem;
+        }
+
+        .log-entry {
+            padding: 0.75rem;
+            border-left: 3px solid var(--warning);
+            background: #FEF3C7;
+            border-radius: 4px;
+            margin-bottom: 0.75rem;
+            font-size: 0.8125rem;
+        }
+
+        .log-date {
+            font-size: 0.7rem;
+            color: #92400E;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        /* Health Notes */
+        .health-note {
+            padding: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: white;
+            margin-bottom: 1rem;
+        }
+
+        .note-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .note-body {
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        /* Timeline */
+        .timeline-bar {
+            height: 40px;
+            background: #F1F5F9;
+            border-radius: 8px;
+            position: relative;
+            margin-bottom: 0.5rem;
+        }
+
+        .timeline-progress {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), #60A5FA);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            color: white;
+            font-weight: 600;
+            font-size: 0.8125rem;
+        }
+
+        .timeline-dates {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 12px;
+            width: 520px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-size: 1.125rem;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+        }
+
+        .form-label .required {
+            color: var(--danger);
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: 0.625rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-family: inherit;
+        }
+
+        .form-textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .size-selector {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .size-option {
+            flex: 1;
+            padding: 0.75rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .size-option:hover {
+            border-color: var(--primary);
+        }
+
+        .size-option.selected {
+            border-color: var(--primary);
+            background: #EFF6FF;
+        }
+
+        .size-option .size-letter {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .size-option .size-hours {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+
+        .form-hint {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+    </style>
+</head>
+
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20V10" />
+                <path d="M18 20V4" />
+                <path d="M6 20v-4" />
+            </svg>
+            <span>Network Planner</span>
+        </div>
+        <a href="heatmap_dashboard_v1.1.html" class="nav-item">Dashboard</a>
+        <a href="roster_management.html" class="nav-item">Roster Management</a>
+        <a href="#" class="nav-item active">Project Registry</a>
+        <a href="#" class="nav-item">Scenario Builder</a>
+        <div class="nav-item" style="margin-top: auto;">Support & Docs</div>
+    </aside>
+
+    <main class="main">
+        <div class="header">
+            <h2>Project Registry</h2>
+            <div style="display: flex; gap: 0.75rem;">
+                <button class="btn">Export List</button>
+                <button class="btn btn-primary" onclick="openIntakeModal()">+ Submit Request</button>
+            </div>
+        </div>
+
+        <div class="project-grid">
+            <!-- Project List Sidebar -->
+            <div class="project-list">
+                <div class="list-header">
+                    <input type="text" class="search-box" placeholder="Search projects...">
+                    <div class="status-tabs">
+                        <div class="status-tab">Draft <span class="count">2</span></div>
+                        <div class="status-tab">Pending <span class="count">1</span></div>
+                        <div class="status-tab active">Approved <span class="count">5</span></div>
+                    </div>
+                    <div class="filter-row">
+                        <span class="filter-chip active">All</span>
+                        <span class="filter-chip">P1</span>
+                        <span class="filter-chip">At Risk</span>
+                    </div>
+                </div>
+                <div class="project-list-scroll">
+                    <div class="project-item active">
+                        <div class="project-item-header">
+                            <div class="project-name">
+                                <span class="priority-badge p1">P1</span>
+                                <span>Core Router Refresh</span>
+                            </div>
+                            <div class="rag-indicator rag-green"></div>
+                        </div>
+                        <div class="project-meta">
+                            <span>44h allocated</span>
+                            <span>Q1 2025</span>
+                        </div>
+                    </div>
+
+                    <div class="project-item">
+                        <div class="project-item-header">
+                            <div class="project-name">
+                                <span class="priority-badge p2">P2</span>
+                                <span>SD-WAN Migration</span>
+                            </div>
+                            <div class="rag-indicator rag-amber"></div>
+                        </div>
+                        <div class="project-meta">
+                            <span>28h allocated</span>
+                            <span>Q2 2025</span>
+                        </div>
+                    </div>
+
+                    <div class="project-item">
+                        <div class="project-item-header">
+                            <div class="project-name">
+                                <span class="priority-badge p2">P2</span>
+                                <span>Automation Scripting</span>
+                            </div>
+                            <div class="rag-indicator rag-green"></div>
+                        </div>
+                        <div class="project-meta">
+                            <span>20h allocated</span>
+                            <span>Q2 2025</span>
+                        </div>
+                    </div>
+
+                    <div class="project-item">
+                        <div class="project-item-header">
+                            <div class="project-name">
+                                <span class="priority-badge p3">P3</span>
+                                <span>Wireless Upgrade</span>
+                            </div>
+                            <div class="rag-indicator rag-red"></div>
+                        </div>
+                        <div class="project-meta">
+                            <span>0h allocated</span>
+                            <span>Q3 2025</span>
+                        </div>
+                    </div>
+
+                    <div class="project-item">
+                        <div class="project-item-header">
+                            <div class="project-name">
+                                <span class="priority-badge p4">P4</span>
+                                <span>Documentation Revamp</span>
+                            </div>
+                            <div class="rag-indicator rag-green"></div>
+                        </div>
+                        <div class="project-meta">
+                            <span>4h allocated</span>
+                            <span>Q4 2025</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Project Detail View -->
+            <div class="detail-card">
+                <div class="detail-header">
+                    <div class="project-title-section">
+                        <h1>
+                            <span class="priority-badge p1">P1</span>
+                            Core Router Refresh
+                        </h1>
+                        <p class="project-subtitle">Owner: Mike Reynolds (Principal Architect) • Oct 21, 2024 - Feb 15,
+                            2025</p>
+                        <div class="status-row">
+                            <div class="status-chip status-green">
+                                <div class="rag-indicator rag-green"></div>
+                                On Track
+                            </div>
+                            <span style="font-size: 0.75rem; color: var(--text-muted);">Last updated: Jan 8, 2025</span>
+                        </div>
+                    </div>
+                    <div>
+                        <button class="btn btn-primary">Edit Project</button>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Allocated</div>
+                        <div class="stat-value">44h/wk</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Engineers</div>
+                        <div class="stat-value">3</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Timeline</div>
+                        <div class="stat-value">16 weeks</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">% Complete</div>
+                        <div class="stat-value" style="color: var(--optimal);">45%</div>
+                    </div>
+                </div>
+
+                <div class="section-header">Resource Requirements & Allocation</div>
+                <table class="resource-table">
+                    <thead>
+                        <tr>
+                            <th>Role Required</th>
+                            <th>Assigned Engineer</th>
+                            <th>Hours/Week</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Lead R/S Architect</strong></td>
+                            <td>
+                                <div class="engineer-cell">
+                                    <div class="avatar-small">SC</div>
+                                    Sarah Chen
+                                </div>
+                            </td>
+                            <td>30h</td>
+                            <td><span class="status-chip status-green">Assigned</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Firewall Specialist</strong></td>
+                            <td>
+                                <div class="engineer-cell">
+                                    <div class="avatar-small">MD</div>
+                                    Mike Davis
+                                </div>
+                            </td>
+                            <td>10h</td>
+                            <td><span class="status-chip status-green">Assigned</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>NOC Support</strong></td>
+                            <td>
+                                <div class="engineer-cell">
+                                    <div class="avatar-small">RP</div>
+                                    R. Patel
+                                </div>
+                            </td>
+                            <td>4h</td>
+                            <td><span class="status-chip status-green">Assigned</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="section-header">Timeline Progress</div>
+                <div style="margin-bottom: 2rem;">
+                    <div class="timeline-bar">
+                        <div class="timeline-progress" style="width: 45%;">
+                            Week 7 of 16
+                        </div>
+                    </div>
+                    <div class="timeline-dates">
+                        <span>Oct 21, 2024</span>
+                        <span>Feb 15, 2025</span>
+                    </div>
+                </div>
+
+                <div class="section-header">Impact Log</div>
+                <div class="impact-log">
+                    <div class="log-entry">
+                        <div class="log-date">Nov 15, 2024</div>
+                        <div><strong>+10h</strong> added to Sarah Chen's allocation (bumped SD-WAN by -10h) due to P1
+                            escalation.</div>
+                    </div>
+                    <div class="log-entry">
+                        <div class="log-date">Oct 28, 2024</div>
+                        <div><strong>Mike Davis assigned</strong> as Firewall Specialist for migration planning phase.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-header">Health Notes</div>
+                <div class="health-note">
+                    <div class="note-header">
+                        <span><strong>Mike Reynolds</strong> • Jan 8, 2025</span>
+                        <span class="status-chip status-green">
+                            <div class="rag-indicator rag-green"></div>
+                            On Track
+                        </span>
+                    </div>
+                    <div class="note-body">
+                        Phase 1 (Planning & Design) completed ahead of schedule. Hardware procurement finalized. No
+                        blockers identified. Team morale is high and velocity is strong. Ready to move into
+                        implementation phase on schedule.
+                    </div>
+                </div>
+
+                <div class="health-note">
+                    <div class="note-header">
+                        <span><strong>Sarah Chen</strong> • Dec 20, 2024</span>
+                        <span class="status-chip status-amber">
+                            <div class="rag-indicator rag-amber"></div>
+                            Minor Risk
+                        </span>
+                    </div>
+                    <div class="note-body">
+                        Vendor delivery for core switches delayed by 2 weeks. Mitigation: Front-loading config and
+                        testing work. Impact to overall timeline expected to be minimal if hardware arrives by Jan 5.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Project Intake Modal -->
+    <div class="modal-overlay" id="intakeModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Submit Project Request</h3>
+                <button class="modal-close" onclick="closeIntakeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Project Name <span class="required">*</span></label>
+                    <input type="text" class="form-input" placeholder="e.g., Data Center Network Refresh">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Description <span class="required">*</span></label>
+                    <textarea class="form-textarea"
+                        placeholder="Brief description of the project scope and deliverables..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Business Justification <span class="required">*</span></label>
+                    <textarea class="form-textarea"
+                        placeholder="Why is this work important? What value does it deliver?"></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Target Completion <span class="required">*</span></label>
+                        <input type="date" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Requested Priority</label>
+                        <select class="form-select">
+                            <option value="">-- Select --</option>
+                            <option value="p1">P1 - Critical</option>
+                            <option value="p2">P2 - High</option>
+                            <option value="p3">P3 - Medium</option>
+                            <option value="p4">P4 - Low</option>
+                        </select>
+                        <div class="form-hint">Resource Manager will set final priority</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Estimated Size <span class="required">*</span></label>
+                    <div class="size-selector">
+                        <div class="size-option" onclick="selectSize(this, 'S')">
+                            <div class="size-letter">S</div>
+                            <div class="size-hours">3h/week</div>
+                        </div>
+                        <div class="size-option selected" onclick="selectSize(this, 'M')">
+                            <div class="size-letter">M</div>
+                            <div class="size-hours">5h/week</div>
+                        </div>
+                        <div class="size-option" onclick="selectSize(this, 'L')">
+                            <div class="size-letter">L</div>
+                            <div class="size-hours">8h/week</div>
+                        </div>
+                        <div class="size-option" onclick="selectSize(this, 'XL')">
+                            <div class="size-letter">XL</div>
+                            <div class="size-hours">13h/week</div>
+                        </div>
+                    </div>
+                    <div class="form-hint">Fibonacci-based weekly effort estimate per engineer</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Apptio Project ID</label>
+                    <input type="text" class="form-input" placeholder="Optional - Link to capitalized project">
+                    <div class="form-hint">Can be added later during Director/AVP approval</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeIntakeModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="submitRequest()">Submit Request</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openIntakeModal() {
+            document.getElementById('intakeModal').classList.add('active');
+        }
+
+        function closeIntakeModal() {
+            document.getElementById('intakeModal').classList.remove('active');
+        }
+
+        function selectSize(element, size) {
+            document.querySelectorAll('.size-option').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+        }
+
+        function submitRequest() {
+            // In production, this would POST to the backend
+            alert('Project request submitted! It will appear in the Draft queue for Resource Manager review.');
+            closeIntakeModal();
+        }
+
+        // Close modal on overlay click
+        document.getElementById('intakeModal').addEventListener('click', function (e) {
+            if (e.target === this) closeIntakeModal();
+        });
+    </script>
+</body>
+
+</html>
