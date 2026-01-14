@@ -9,6 +9,7 @@ import FiscalReportPage from './pages/FiscalReportPage';
 import EngineerProfileModal from './components/EngineerProfileModal';
 import AllocationCard from './components/AllocationCard';
 import QuickAddPopover from './components/QuickAddPopover';
+import MobileDashboard from './components/MobileDashboard';
 
 // Detect if running in production (via domain) or development (localhost)
 // In production, API calls go through nginx proxy at /api, so we use empty string
@@ -371,6 +372,17 @@ function App() {
   };
 
   const renderDashboard = () => {
+    // Mobile Check: If screen is small, show the simplified mobile dashboard
+    // We already have responsive CSS, but this component replaces the DENSE grid with a SUMMARY view
+    if (window.innerWidth < 768) {
+      return (
+        <MobileDashboard
+          engineers={engineers}
+          projects={projects}
+          allocations={allAllocations}
+        />
+      );
+    }
     // Generate weeks based on selected quarter filter
     const getWeeksForQuarter = (quarterStr) => {
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
