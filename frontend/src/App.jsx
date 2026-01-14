@@ -10,7 +10,10 @@ import EngineerProfileModal from './components/EngineerProfileModal';
 import AllocationCard from './components/AllocationCard';
 import QuickAddPopover from './components/QuickAddPopover';
 
-const API_BASE = 'http://localhost:8001';
+// Detect if running in production (via domain) or development (localhost)
+const API_BASE = window.location.hostname === 'localhost'
+  ? 'http://localhost:8001'
+  : '/api';
 
 // Utility for priority badges
 const PriorityBadge = ({ priority }) => {

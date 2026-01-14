@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 
-const API_BASE = 'http://localhost:8001';
+const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8001' : '/api';
 
 const FiscalReportPage = ({ projects = [], allDevices = [] }) => {
     // Filter state - empty arrays mean "show all" (no filter applied)

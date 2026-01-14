@@ -18,7 +18,7 @@ const AddRidModal = ({ projectId, onClose, onSave }) => {
             // For now, hardcode http://localhost:8000 or expect parent to handle if we pass logic?
             // Better: component makes the call using standard fetch
 
-            const API_BASE = 'http://localhost:8001'; // Match App.jsx
+            const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8001' : '/api';
 
             const res = await fetch(`${API_BASE}/api/projects/${projectId}/rid-log`, {
                 method: 'POST',
