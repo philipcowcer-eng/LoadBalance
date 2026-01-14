@@ -11,6 +11,7 @@ import AllocationCard from './components/AllocationCard';
 import QuickAddPopover from './components/QuickAddPopover';
 import MobileDashboard from './components/MobileDashboard';
 import MobileStaffView from './components/MobileStaffView';
+import MobileProjectView from './components/MobileProjectView';
 
 // Detect if running in production (via domain) or development (localhost)
 // In production, API calls go through nginx proxy at /api, so we use empty string
@@ -1557,6 +1558,11 @@ function App() {
 
 
   const renderProjects = () => {
+    // Mobile Project Feed (US-MOBILE-003)
+    if (window.innerWidth < 768) {
+      return <MobileProjectView projects={projects} engineers={engineers} />;
+    }
+
     const selectedProject = projects.find(p => p.id === selectedProjectId) || projects[0];
 
     const getStatusColor = (status) => {
