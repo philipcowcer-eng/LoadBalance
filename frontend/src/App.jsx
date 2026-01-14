@@ -59,6 +59,7 @@ function App() {
   const [notification, setNotification] = useState({ show: false, type: '', message: '' });
 
   const [dashboardTeamFilter, setDashboardTeamFilter] = useState('All Teams');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // US-DASH-001: Dynamic quarter calculation based on current date
   const getCurrentQuarter = () => {
@@ -276,7 +277,7 @@ function App() {
   };
 
   const renderSidebar = () => (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isMobileMenuOpen ? 'mobile-active' : ''}`}>
       <div className="sidebar-logo">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="c-optimal">
           <path d="M12 20V10" />
@@ -287,42 +288,42 @@ function App() {
       </div>
       <button
         className={`nav-item ${currentPage === 'dashboard' ? 'active' : ''}`}
-        onClick={() => setCurrentPage('dashboard')}
+        onClick={() => { setCurrentPage('dashboard'); setIsMobileMenuOpen(false); }}
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 18, height: 18 }}><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
         Dashboard
       </button>
       <button
         className={`nav-item ${currentPage === 'roster' ? 'active' : ''}`}
-        onClick={() => setCurrentPage('roster')}
+        onClick={() => { setCurrentPage('roster'); setIsMobileMenuOpen(false); }}
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 18, height: 18 }}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
         Staff Planning
       </button>
       <button
         className={`nav-item ${currentPage === 'projects' ? 'active' : ''}`}
-        onClick={() => setCurrentPage('projects')}
+        onClick={() => { setCurrentPage('projects'); setIsMobileMenuOpen(false); }}
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 18, height: 18 }}><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
         Project Registry
       </button>
       <button
         className={`nav-item ${currentPage === 'my-week' ? 'active' : ''}`}
-        onClick={() => setCurrentPage('my-week')}
+        onClick={() => { setCurrentPage('my-week'); setIsMobileMenuOpen(false); }}
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 18, height: 18 }}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
         My Week
       </button>
       <button
         className={`nav-item ${currentPage === 'scenario' ? 'active' : ''}`}
-        onClick={() => setCurrentPage('scenario')}
+        onClick={() => { setCurrentPage('scenario'); setIsMobileMenuOpen(false); }}
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 18, height: 18 }}><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
         Scenario Builder
       </button>
       <button
         className={`nav-item ${currentPage === 'fiscal-report' ? 'active' : ''}`}
-        onClick={() => setCurrentPage('fiscal-report')}
+        onClick={() => { setCurrentPage('fiscal-report'); setIsMobileMenuOpen(false); }}
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 18, height: 18 }}><path d="M3 3v18h18"></path><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"></path></svg>
         Fiscal Reporting
@@ -330,7 +331,7 @@ function App() {
       <div style={{ marginTop: 'auto' }}>
         <button
           className={`nav-item ${currentPage === 'support' ? 'active' : ''}`}
-          onClick={() => setCurrentPage('support')}
+          onClick={() => { setCurrentPage('support'); setIsMobileMenuOpen(false); }}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 18, height: 18 }}><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
           Support & Docs
@@ -2263,6 +2264,12 @@ function App() {
 
   return (
     <div className="app-container">
+      <button
+        className="mobile-toggle"
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+      >
+        {isMobileMenuOpen ? '✕ Close Menu' : '☰ Menu'}
+      </button>
       {/* Toast Notification */}
       {notification.show && (
         <div style={{
