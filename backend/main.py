@@ -11,7 +11,7 @@ import enum
 import os
 import models, schemas, database
 from database import engine, get_db
-from auth import auth_router, User
+from auth import auth_router, User, get_current_user
 from export import export_router
 from import_data import import_router
 from audit_log import audit_router
