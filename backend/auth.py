@@ -150,6 +150,7 @@ def register(user_data: UserCreate, request: Request, db: Session = Depends(get_
     """
     Register a new user.
     First user becomes admin automatically.
+    Subsequent users cannot register as 'admin'.
     """
     try:
         # Check if username already exists
@@ -164,7 +165,13 @@ def register(user_data: UserCreate, request: Request, db: Session = Depends(get_
             # Fallback if table doesn't exist (helpful for debugging)
             raise HTTPException(status_code=500, detail=f"Database Error (Table missing?): {str(e)}")
 
-        role = "admin" if user_count == 0 else user_data.role
+        if user_count == 0:
+            role = "admin"
+        else:
+            role = user_data.role
+            # Prevent registering as admin if not first user
+            if role == "admin":
+                raise HTTPException(status_code=403, detail="Admin role cannot be selected during registration.")
         
         # Validate role
         valid_roles = ["admin", "resource_manager", "project_manager", "engineer"]
@@ -237,3 +244,35 @@ def get_users(
     """
     users = db.query(User).all()
     return [UserResponse.model_validate(u) for u in users]
+
+class UserRoleUpdate(BaseModel):
+    role: str
+
+@auth_router.put("/users/{user_id}/role", response_model=UserResponse)
+def update_user_role(
+    user_id: str,
+    role_update: UserRoleUpdate,
+    request: Request,
+    current_user: User = Depends(require_role("admin")),
+    db: Session = Depends(get_db)
+):
+    """
+    Update a user's role (Admin only).
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    old_role = user.role
+    valid_roles = ["admin", "resource_manager", "project_manager", "engineer"]
+    if role_update.role not in valid_roles:
+        raise HTTPException(status_code=400, detail=f"Invalid role. Must be one of: {', '.join(valid_roles)}")
+        
+    user.role = role_update.role
+    db.commit()
+    db.refresh(user)
+    
+    # Record Audit
+    record_audit(db, "UPDATE_ROLE", "User", user.id, {"username": user.username, "old_role": old_role, "new_role": user.role}, current_user, request)
+    
+    return UserResponse.model_validate(user)

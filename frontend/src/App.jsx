@@ -17,6 +17,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import ActivityLog from './components/ActivityLog';
 import SnapshotManager from './components/SnapshotManager';
 import BulkImportManager from './components/BulkImportManager';
+import UserManagement from './components/UserManagement';
 
 // Detect if running in production (via domain) or development (localhost)
 // In production, API calls go through nginx proxy at /api, so we use empty string
@@ -2685,6 +2686,8 @@ function App({ isGuestMode = false }) {
                 <SnapshotManager API_BASE={API_BASE} />
                 <div style={{ borderTop: '1px solid #E2E8F0', margin: '2rem 0' }}></div>
                 <BulkImportManager API_BASE={API_BASE} />
+                <div style={{ borderTop: '1px solid #E2E8F0', margin: '2rem 0' }}></div>
+                <UserManagement API_BASE={API_BASE} />
               </div>
             )}
           </>
