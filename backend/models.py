@@ -74,6 +74,19 @@ class AllocationStatusEnum(str, enum.Enum):
     ASSIGNED = "Assigned"
     REMOVED = "Removed"
 
+# =============================================================================
+# User Model (for Authentication)
+# =============================================================================
+
+class User(Base):
+    __tablename__ = "users"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    username = Column(String, unique=True, nullable=False, index=True)
+    password_hash = Column(String, nullable=False)
+    role = Column(String, default="engineer")  # admin, resource_manager, project_manager, engineer
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 class Engineer(Base):
     __tablename__ = "engineers"
 
