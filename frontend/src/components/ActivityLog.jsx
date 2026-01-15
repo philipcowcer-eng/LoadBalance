@@ -12,7 +12,7 @@ const ActivityLog = ({ API_BASE }) => {
     const fetchLogs = async () => {
         try {
             setLoading(true);
-            const token = localStorage.getItem('resourceManager_token');
+            const token = localStorage.getItem('token');
             const response = await fetch(`${API_BASE}/api/audit/logs`, {
                 headers: {
                     'Authorization': `Bearer ${token}`

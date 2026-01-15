@@ -27,7 +27,7 @@ const BulkImportManager = ({ API_BASE }) => {
         formData.append('file', file);
 
         try {
-            const token = localStorage.getItem('resourceManager_token');
+            const token = localStorage.getItem('token');
             const endpoint = activeTab === 'engineers' ? '/api/import/engineers' : '/api/import/projects';
 
             const response = await fetch(`${API_BASE}${endpoint}`, {

@@ -13,7 +13,7 @@ const SnapshotManager = ({ API_BASE }) => {
     const fetchSnapshots = async () => {
         try {
             setLoading(true);
-            const token = localStorage.getItem('resourceManager_token');
+            const token = localStorage.getItem('token');
             const response = await fetch(`${API_BASE}/api/snapshots/`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -30,7 +30,7 @@ const SnapshotManager = ({ API_BASE }) => {
     const createSnapshot = async () => {
         try {
             setActionLoading(true);
-            const token = localStorage.getItem('resourceManager_token');
+            const token = localStorage.getItem('token');
             const response = await fetch(`${API_BASE}/api/snapshots/create`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -50,7 +50,7 @@ const SnapshotManager = ({ API_BASE }) => {
 
         try {
             setActionLoading(true);
-            const token = localStorage.getItem('resourceManager_token');
+            const token = localStorage.getItem('token');
             const response = await fetch(`${API_BASE}/api/snapshots/restore/${filename}`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
