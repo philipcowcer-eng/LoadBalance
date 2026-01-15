@@ -31,8 +31,11 @@ class SnapshotInfo(BaseModel):
 # Configuration
 # =============================================================================
 
-SNAPSHOT_DIR = os.path.join(os.getcwd(), "snapshots")
-DB_PATH = os.path.join(os.getcwd(), "resource_manager.db")
+# Use /app/data in Docker (volume mount) or local path for development
+DATA_DIR = os.environ.get("DATA_DIR", os.getcwd())
+
+SNAPSHOT_DIR = os.path.join(DATA_DIR, "snapshots")
+DB_PATH = os.path.join(DATA_DIR, "resource_manager.db")
 
 # Ensure snapshot directory exists
 if not os.path.exists(SNAPSHOT_DIR):
