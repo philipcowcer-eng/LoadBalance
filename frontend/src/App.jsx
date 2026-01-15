@@ -2648,6 +2648,15 @@ function App({ isGuestMode = false }) {
               </div>
             )}
             {currentPage === 'support' && renderSupport()}
+
+            {/* Admin Page Content */}
+            {currentPage === 'admin' && (
+              <div style={{ background: '#F8FAFC', paddingBottom: '4rem' }}>
+                <ActivityLog API_BASE={API_BASE} />
+                <div style={{ borderTop: '1px solid #E2E8F0', margin: '2rem 0' }}></div>
+                <SnapshotManager API_BASE={API_BASE} />
+              </div>
+            )}
           </>
         )}
       </main>
@@ -2681,14 +2690,6 @@ function AppWithAuth() {
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '1.25rem', color: '#64748B' }}>Loading...</div>
         </div>
-        {/* Admin Page Content */}
-        {currentPage === 'admin' && (
-          <div style={{ height: 'calc(100vh - 64px)', overflowY: 'auto', background: '#F8FAFC' }}>
-            <ActivityLog API_BASE={API_BASE} />
-            <div style={{ borderTop: '1px solid #E2E8F0', marginTop: '2rem' }}></div>
-            <SnapshotManager API_BASE={API_BASE} />
-          </div>
-        )}
       </div>
     );
   }
