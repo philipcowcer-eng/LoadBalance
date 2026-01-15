@@ -8,11 +8,13 @@ services:
     environment:
       # Configure allowed CORS origins (comma-separated)
       - ALLOWED_ORIGINS=http://localhost:5173,https://planning.goodenough.to
+      # Database storage directory (mounted as volume)
+      - DATA_DIR=/app/data
     # Only expose to internal network (frontend proxy handles external traffic)
     expose:
       - "8000"
     volumes:
-      - ./backend/resource_manager.db:/app/resource_manager.db
+      - backend_data:/app/data
 
   frontend:
     build: ./frontend
@@ -26,3 +28,6 @@ services:
 networks:
   default:
     driver: bridge
+
+volumes:
+  backend_data:
