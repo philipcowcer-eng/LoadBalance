@@ -17,8 +17,6 @@ from import_data import import_router
 from audit_log import audit_router
 from utils import record_audit
 from snapshots import snapshot_router
-from audit_log import audit_router
-from snapshots import snapshot_router
 
 # Create the database tables (including User table from auth)
 models.Base.metadata.create_all(bind=engine)
