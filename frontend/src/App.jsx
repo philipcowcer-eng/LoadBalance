@@ -14,6 +14,8 @@ import MobileStaffView from './components/MobileStaffView';
 import MobileProjectView from './components/MobileProjectView';
 import LoginPage from './components/LoginPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import ActivityLog from './components/ActivityLog';
+import SnapshotManager from './components/SnapshotManager';
 
 // Detect if running in production (via domain) or development (localhost)
 // In production, API calls go through nginx proxy at /api, so we use empty string
@@ -30,6 +32,7 @@ const PriorityBadge = ({ priority }) => {
 }
 
 function App({ isGuestMode = false }) {
+  const { user, logout, can } = useAuth();
   // Persist current page in localStorage
   const [currentPage, setCurrentPage] = useState(() => {
     if (isGuestMode) return 'projects';
@@ -342,6 +345,17 @@ function App({ isGuestMode = false }) {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 18, height: 18 }}><path d="M3 3v18h18"></path><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"></path></svg>
         Fiscal Reporting
       </button>
+
+      {/* Admin Settings (Admin only) */}
+      {can('manage_users') && (
+        <button
+          className={`nav-item ${currentPage === 'admin' ? 'active' : ''}`}
+          onClick={() => { setCurrentPage('admin'); setIsMobileMenuOpen(false); }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 18, height: 18 }}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          Admin Settings
+        </button>
+      )}
       <div style={{ marginTop: 'auto' }}>
         <button
           className={`nav-item ${currentPage === 'support' ? 'active' : ''}`}
@@ -2667,6 +2681,14 @@ function AppWithAuth() {
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '1.25rem', color: '#64748B' }}>Loading...</div>
         </div>
+        {/* Admin Page Content */}
+        {currentPage === 'admin' && (
+          <div style={{ height: 'calc(100vh - 64px)', overflowY: 'auto', background: '#F8FAFC' }}>
+            <ActivityLog API_BASE={API_BASE} />
+            <div style={{ borderTop: '1px solid #E2E8F0', marginTop: '2rem' }}></div>
+            <SnapshotManager API_BASE={API_BASE} />
+          </div>
+        )}
       </div>
     );
   }

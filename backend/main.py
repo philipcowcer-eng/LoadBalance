@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
@@ -14,6 +14,10 @@ from database import engine, get_db
 from auth import auth_router, User
 from export import export_router
 from import_data import import_router
+from audit_log import audit_router, record_audit
+from snapshots import snapshot_router
+from audit_log import audit_router
+from snapshots import snapshot_router
 
 # Create the database tables (including User table from auth)
 models.Base.metadata.create_all(bind=engine)
@@ -26,6 +30,10 @@ app.include_router(auth_router)
 app.include_router(export_router)
 # Include import router
 app.include_router(import_router)
+# Include audit router
+app.include_router(audit_router)
+# Include snapshot router
+app.include_router(snapshot_router)
 
 
 # CORS Configuration - reads from environment variable or uses defaults
@@ -108,11 +116,15 @@ def get_engineers(db: Session = Depends(get_db)):
     return db.query(models.Engineer).all()
 
 @app.post("/api/engineers", response_model=schemas.Engineer)
-def create_engineer(engineer: schemas.EngineerCreate, db: Session = Depends(get_db)):
+def create_engineer(engineer: schemas.EngineerCreate, request: Request, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     db_engineer = models.Engineer(**engineer.model_dump())
     db.add(db_engineer)
     db.commit()
     db.refresh(db_engineer)
+    
+    # Record Audit
+    record_audit(db, "CREATE", "Engineer", db_engineer.id, engineer.model_dump(), current_user, request)
+    
     return db_engineer
 
 @app.get("/api/engineers/{engineer_id}", response_model=schemas.Engineer)
@@ -123,7 +135,7 @@ def get_engineer(engineer_id: UUID, db: Session = Depends(get_db)):
     return db_engineer
 
 @app.put("/api/engineers/{engineer_id}", response_model=schemas.Engineer)
-def update_engineer(engineer_id: UUID, engineer: schemas.EngineerCreate, db: Session = Depends(get_db)):
+def update_engineer(engineer_id: UUID, engineer: schemas.EngineerCreate, request: Request, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     db_engineer = db.query(models.Engineer).filter(models.Engineer.id == str(engineer_id)).first()
     if not db_engineer:
         raise HTTPException(status_code=404, detail="Engineer not found")
@@ -133,6 +145,10 @@ def update_engineer(engineer_id: UUID, engineer: schemas.EngineerCreate, db: Ses
     
     db.commit()
     db.refresh(db_engineer)
+    
+    # Record Audit
+    record_audit(db, "UPDATE", "Engineer", str(engineer_id), engineer.model_dump(), current_user, request)
+    
     return db_engineer
 
 @app.get("/api/engineers/{engineer_id}/allocations", response_model=List[schemas.Allocation])
@@ -211,7 +227,7 @@ def get_projects(db: Session = Depends(get_db)):
     return db_projects
 
 @app.post("/api/projects", response_model=schemas.Project)
-def create_project(project: schemas.ProjectCreate, db: Session = Depends(get_db)):
+def create_project(project: schemas.ProjectCreate, request: Request, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     # Use standard model_dump to keep Python objects (Dates, Enums)
     # SQLAlchemy handles Enums/Dates automatically for SQLite, but UUIDs need to be strings
     data = project.model_dump()
@@ -234,7 +250,7 @@ def get_project(project_id: UUID, db: Session = Depends(get_db)):
     return db_project
 
 @app.put("/api/projects/{project_id}", response_model=schemas.Project)
-def update_project(project_id: UUID, project: schemas.ProjectCreate, db: Session = Depends(get_db)):
+def update_project(project_id: UUID, project: schemas.ProjectCreate, request: Request, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     db_project = db.query(models.Project).filter(models.Project.id == str(project_id)).first()
     if not db_project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -251,7 +267,7 @@ def update_project(project_id: UUID, project: schemas.ProjectCreate, db: Session
 
 # Epic 11: Partial project update (PATCH) for modal editing
 @app.patch("/api/projects/{project_id}", response_model=schemas.Project)
-def patch_project(project_id: UUID, project_update: schemas.ProjectUpdate, db: Session = Depends(get_db)):
+def patch_project(project_id: UUID, project_update: schemas.ProjectUpdate, request: Request, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     """
     Partial update for project fields (US-11.1 to US-11.5).
     Only updates fields that are provided in the request.

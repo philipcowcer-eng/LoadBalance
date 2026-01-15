@@ -208,6 +208,19 @@ class ProjectDevice(Base):
     proposed_qty = Column(Integer, nullable=False) # Devices to deploy
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Relationship
     project = relationship("Project", back_populates="devices")
+
+class AuditLog(Base):
+    """Stores all manual user actions for audit trail (US-0.3)"""
+    __tablename__ = "audit_logs"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    user_id = Column(String, nullable=True) # ID of user who performed the action
+    username = Column(String, nullable=True) # For quick reference
+    action = Column(String, nullable=False)   # CREATE, UPDATE, DELETE, LOGIN, EXPORT
+    resource_type = Column(String, nullable=False) # Project, Engineer, Allocation
+    resource_id = Column(String, nullable=True)
+    details = Column(Text, nullable=True)     # JSON or string details of change
+    ip_address = Column(String, nullable=True)
 

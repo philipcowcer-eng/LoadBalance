@@ -9,7 +9,7 @@ This module provides:
 - Role-based access control (RBAC)
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from sqlalchemy import Column, String, DateTime
@@ -22,6 +22,7 @@ import os
 
 from database import get_db
 from models import Base, User  # Import User from models.py
+from audit_log import record_audit # Import record_audit
 
 # =============================================================================
 # Configuration
@@ -142,7 +143,7 @@ def require_role(*allowed_roles: str):
 auth_router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
 @auth_router.post("/register", response_model=TokenResponse)
-def register(user_data: UserCreate, db: Session = Depends(get_db)):
+def register(user_data: UserCreate, request: Request, db: Session = Depends(get_db)):
     """
     Register a new user.
     First user becomes admin automatically.
@@ -180,6 +181,9 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
         # Generate token
         token = create_access_token(user.id, user.username, user.role)
         
+        # Record Audit
+        record_audit(db, "REGISTER", "User", user.id, {"username": user.username, "role": user.role}, user, request)
+        
         return TokenResponse(
             access_token=token,
             user=UserResponse.model_validate(user)
@@ -191,7 +195,7 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
 
 @auth_router.post("/login", response_model=TokenResponse)
-def login(credentials: UserLogin, db: Session = Depends(get_db)):
+def login(credentials: UserLogin, request: Request, db: Session = Depends(get_db)):
     """
     Login with username and password.
     Returns JWT token on success.
@@ -202,6 +206,9 @@ def login(credentials: UserLogin, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid username or password")
     
     token = create_access_token(user.id, user.username, user.role)
+    
+    # Record Audit
+    record_audit(db, "LOGIN", "User", user.id, {"username": user.username}, user, request)
     
     return TokenResponse(
         access_token=token,
