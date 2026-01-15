@@ -356,7 +356,34 @@ function App({ isGuestMode = false }) {
           Admin Settings
         </button>
       )}
-      <div style={{ marginTop: 'auto' }}>
+      <div style={{ marginTop: 'auto', borderTop: '1px solid #334155', paddingTop: '1rem' }}>
+        <div style={{ padding: '0 0.75rem 0.75rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{
+            width: '2rem', height: '2rem', borderRadius: '50%', background: '#3B82F6',
+            color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '0.875rem', fontWeight: 600
+          }}>
+            {user?.username?.[0]?.toUpperCase() || 'U'}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: '0.875rem', fontWeight: 500, color: '#F1F5F9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {user?.username || 'User'}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+              {user?.role || 'Engineer'}
+            </div>
+          </div>
+          <button
+            onClick={logout}
+            style={{
+              background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '0.25rem'
+            }}
+            title="Sign Out"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16, height: 16 }}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          </button>
+        </div>
+
         <button
           className={`nav-item ${currentPage === 'support' ? 'active' : ''}`}
           onClick={() => { setCurrentPage('support'); setIsMobileMenuOpen(false); }}
