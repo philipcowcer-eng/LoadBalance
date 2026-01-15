@@ -1213,7 +1213,7 @@ function App() {
 
     const teamOverloadCount = engineerSchedules.filter(e => e.utilizationPct > 100).length;
 
-    // Calculate total unassigned hours dynamically (US-3.3)
+    // Calculate total unassigned hours dynamically
     const totalUnassignedHours = projects
       .filter(p => (p.workflow_status === 'Approved' || p.workflow_status === 'Active') && p.workflow_status !== 'Complete' && p.workflow_status !== 'Cancelled')
       .reduce((sum, p) => {
@@ -1288,7 +1288,7 @@ function App() {
               </div>
             </div>
 
-            {/* Impact Summary Banner (Relocated US-3.3) */}
+            {/* Impact Summary Banner */}
             <div style={{
               display: 'flex',
               gap: '2rem',
@@ -1321,7 +1321,7 @@ function App() {
               <div style={{ flex: 1, overflow: 'auto', padding: '1.5rem 2rem', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ flex: 1, background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', overflow: 'auto', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column' }}>
                   <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, left: 0, zIndex: 30, background: 'white', borderRadius: '12px 12px 0 0' }}>
-                    <span style={{ fontWeight: 700, color: '#0F172A', fontSize: '1rem' }}>Team Schedule (US-3.1)</span>
+                    <span style={{ fontWeight: 700, color: '#0F172A', fontSize: '1rem' }}>Team Schedule</span>
                     <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem', color: '#64748B' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><div style={{ width: 8, height: 8, background: '#EF4444', borderRadius: '50%' }}></div> P1 Critical</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><div style={{ width: 8, height: 8, background: '#64748B', borderRadius: '50%' }}></div> KTLO</div>
@@ -1442,7 +1442,7 @@ function App() {
               <div style={{ width: '300px', background: 'white', borderLeft: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #E2E8F0' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                    <div style={{ fontWeight: 700, color: '#0F172A' }}>Uni-Backlog (US-3.2)</div>
+                    <div style={{ fontWeight: 700, color: '#0F172A' }}>Project Backlog</div>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.625rem', color: '#64748B', cursor: 'pointer' }}>
                       <input type="checkbox" checked={showFullyStaffed} onChange={(e) => setShowFullyStaffed(e.target.checked)} />
                       Show Done
