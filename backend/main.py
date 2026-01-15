@@ -52,6 +52,44 @@ def read_root():
 def health_check():
     return {"status": "healthy"}
 
+@app.get("/api/debug/db-tables")
+def debug_db_tables(db: Session = Depends(get_db)):
+    """Check which tables exist in the database."""
+    from sqlalchemy import inspect
+    inspector = inspect(engine)
+    tables = inspector.get_table_names()
+    return {"tables": tables, "users_exists": "users" in tables}
+
+@app.on_event("startup")
+def create_default_admin():
+    """Create a default admin user if no users exist (bootstrap mode)."""
+    from auth import hash_password
+    db = database.SessionLocal()
+    try:
+        # Check if users table exists first
+        from sqlalchemy import inspect
+        inspector = inspect(engine)
+        if "users" not in inspector.get_table_names():
+            print("STARTUP: 'users' table does not exist yet. Skipping admin bootstrap.")
+            return
+        
+        user_count = db.query(models.User).count()
+        if user_count == 0:
+            admin = models.User(
+                username="admin",
+                password_hash=hash_password("changeme"),
+                role="admin"
+            )
+            db.add(admin)
+            db.commit()
+            print("STARTUP: Created default admin user: admin / changeme")
+        else:
+            print(f"STARTUP: {user_count} user(s) already exist. Skipping admin bootstrap.")
+    except Exception as e:
+        print(f"STARTUP: Could not create default admin: {e}")
+    finally:
+        db.close()
+
 # =============================================================================
 # Global Queries (for frontend aggregation)
 # =============================================================================

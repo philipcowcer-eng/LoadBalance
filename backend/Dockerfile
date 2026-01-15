@@ -4,8 +4,12 @@ FROM python:3.10-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies (sqlite3)
-RUN apt-get update && apt-get install -y sqlite3 && rm -rf /var/lib/apt/lists/*
+# Install system dependencies (sqlite3 + build tools for bcrypt)
+RUN apt-get update && apt-get install -y \
+    sqlite3 \
+    libffi-dev \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
