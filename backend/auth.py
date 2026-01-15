@@ -20,7 +20,9 @@ import jwt
 import uuid
 import os
 
-from database import get_db, Base
+from database import get_db
+from models import Base  # Use the same Base as other models
+
 
 # =============================================================================
 # Configuration
