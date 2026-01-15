@@ -11,11 +11,22 @@ import enum
 import os
 import models, schemas, database
 from database import engine, get_db
+from auth import auth_router, User
+from export import export_router
+from import_data import import_router
 
-# Create the database tables
+# Create the database tables (including User table from auth)
 models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Network Resource Manager API", version="0.2.0")
+app = FastAPI(title="goodenough.to | Planning API", version="0.3.0")
+
+# Include authentication router
+app.include_router(auth_router)
+# Include export router
+app.include_router(export_router)
+# Include import router
+app.include_router(import_router)
+
 
 # CORS Configuration - reads from environment variable or uses defaults
 # Set ALLOWED_ORIGINS env var as comma-separated list: "http://localhost:5173,https://myapp.com"

@@ -12,6 +12,8 @@ import QuickAddPopover from './components/QuickAddPopover';
 import MobileDashboard from './components/MobileDashboard';
 import MobileStaffView from './components/MobileStaffView';
 import MobileProjectView from './components/MobileProjectView';
+import LoginPage from './components/LoginPage';
+import { AuthProvider, useAuth } from './context/AuthContext';
 
 // Detect if running in production (via domain) or development (localhost)
 // In production, API calls go through nginx proxy at /api, so we use empty string
@@ -2640,4 +2642,38 @@ function App() {
   );
 }
 
-export default App;
+// Wrapper component that handles authentication
+function AppWithAuth() {
+  const { isAuthenticated, loading, logout, user } = useAuth();
+
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#F8FAFC'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '1.25rem', color: '#64748B' }}>Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
+
+  return <App />;
+}
+
+// Export with AuthProvider wrapper
+export default function AppWrapper() {
+  return (
+    <AuthProvider>
+      <AppWithAuth />
+    </AuthProvider>
+  );
+}
