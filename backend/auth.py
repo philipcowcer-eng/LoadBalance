@@ -147,37 +147,48 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
     Register a new user.
     First user becomes admin automatically.
     """
-    # Check if username already exists
-    existing = db.query(User).filter(User.username == user_data.username).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Username already exists")
-    
-    # First user becomes admin
-    user_count = db.query(User).count()
-    role = "admin" if user_count == 0 else user_data.role
-    
-    # Validate role
-    valid_roles = ["admin", "resource_manager", "project_manager", "engineer"]
-    if role not in valid_roles:
-        raise HTTPException(status_code=400, detail=f"Invalid role. Must be one of: {', '.join(valid_roles)}")
-    
-    # Create user
-    user = User(
-        username=user_data.username,
-        password_hash=hash_password(user_data.password),
-        role=role
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    
-    # Generate token
-    token = create_access_token(user.id, user.username, user.role)
-    
-    return TokenResponse(
-        access_token=token,
-        user=UserResponse.model_validate(user)
-    )
+    try:
+        # Check if username already exists
+        existing = db.query(User).filter(User.username == user_data.username).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Username already exists")
+        
+        # First user becomes admin
+        try:
+            user_count = db.query(User).count()
+        except Exception as e:
+            # Fallback if table doesn't exist (helpful for debugging)
+            raise HTTPException(status_code=500, detail=f"Database Error (Table missing?): {str(e)}")
+
+        role = "admin" if user_count == 0 else user_data.role
+        
+        # Validate role
+        valid_roles = ["admin", "resource_manager", "project_manager", "engineer"]
+        if role not in valid_roles:
+            raise HTTPException(status_code=400, detail=f"Invalid role. Must be one of: {', '.join(valid_roles)}")
+        
+        # Create user
+        user = User(
+            username=user_data.username,
+            password_hash=hash_password(user_data.password),
+            role=role
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        
+        # Generate token
+        token = create_access_token(user.id, user.username, user.role)
+        
+        return TokenResponse(
+            access_token=token,
+            user=UserResponse.model_validate(user)
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Registration Error: {str(e)}") # Log to console
+        raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
 
 @auth_router.post("/login", response_model=TokenResponse)
 def login(credentials: UserLogin, db: Session = Depends(get_db)):
