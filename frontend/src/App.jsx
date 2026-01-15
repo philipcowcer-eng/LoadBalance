@@ -29,12 +29,14 @@ const PriorityBadge = ({ priority }) => {
   return <span className={`priority-badge ${className}`}>{priority}</span>;
 }
 
-function App() {
+function App({ isGuestMode = false }) {
   // Persist current page in localStorage
   const [currentPage, setCurrentPage] = useState(() => {
+    if (isGuestMode) return 'projects';
     const saved = localStorage.getItem('resourceManager_currentPage');
     return saved || 'dashboard';
   });
+
   const [engineers, setEngineers] = useState([]);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -221,6 +223,13 @@ function App() {
       setLoading(false);
     }
   };
+
+  // Handle global events (for guest mode intake)
+  useEffect(() => {
+    const handleShowIntake = () => setShowIntakeModal(true);
+    window.addEventListener('show-intake', handleShowIntake);
+    return () => window.removeEventListener('show-intake', handleShowIntake);
+  }, []);
 
   const createProject = async (e) => {
     e.preventDefault();
@@ -2663,7 +2672,12 @@ function AppWithAuth() {
   }
 
   if (!isAuthenticated) {
-    return <LoginPage />;
+    return (
+      <>
+        <LoginPage showIntake={() => window.dispatchEvent(new CustomEvent('show-intake'))} />
+        <App isGuestMode={true} />
+      </>
+    );
   }
 
   return <App />;

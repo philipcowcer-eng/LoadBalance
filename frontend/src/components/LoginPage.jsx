@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
-const LoginPage = ({ onSuccess }) => {
+const LoginPage = ({ onSuccess, showIntake }) => {
     const { login, register } = useAuth();
     const [isRegistering, setIsRegistering] = useState(false);
     const [username, setUsername] = useState('');
@@ -188,6 +188,38 @@ const LoginPage = ({ onSuccess }) => {
                     }}>
                         First user registered becomes Admin
                     </p>
+                )}
+
+                {/* Guest / Public link */}
+                {!isRegistering && (
+                    <div style={{
+                        textAlign: 'center',
+                        marginTop: '2rem',
+                        padding: '1rem',
+                        background: '#F8FAFC',
+                        borderRadius: '12px',
+                        border: '1px dashed #E2E8F0'
+                    }}>
+                        <p style={{ color: '#64748B', fontSize: '0.8125rem', marginBottom: '0.75rem' }}>
+                            Just need to request resources?
+                        </p>
+                        <button
+                            onClick={showIntake}
+                            style={{
+                                background: 'white',
+                                color: '#1E293B',
+                                border: '1px solid #E2E8F0',
+                                padding: '0.5rem 1rem',
+                                borderRadius: '6px',
+                                fontSize: '0.875rem',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                            }}
+                        >
+                            🚀 Submit Project Request
+                        </button>
+                    </div>
                 )}
             </div>
         </div>
