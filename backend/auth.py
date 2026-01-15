@@ -22,7 +22,7 @@ import os
 
 from database import get_db
 from models import Base, User  # Import User from models.py
-from audit_log import record_audit # Import record_audit
+from utils import record_audit # Import record_audit
 
 # =============================================================================
 # Configuration

@@ -14,7 +14,8 @@ from database import engine, get_db
 from auth import auth_router, User
 from export import export_router
 from import_data import import_router
-from audit_log import audit_router, record_audit
+from audit_log import audit_router
+from utils import record_audit
 from snapshots import snapshot_router
 from audit_log import audit_router
 from snapshots import snapshot_router
