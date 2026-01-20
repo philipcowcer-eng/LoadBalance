@@ -308,11 +308,11 @@ class ProjectTask(Base):
     start_date = Column(Date, nullable=True)
     end_date = Column(Date, nullable=True)
     dependency_id = Column(String, ForeignKey("project_tasks.id"), nullable=True)
-    assignee_id = Column(String, ForeignKey("users.id"), nullable=True)
+    assignee_id = Column(String, ForeignKey("engineers.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     project = relationship("Project", back_populates="tasks")
-    assignee = relationship("User", foreign_keys=[assignee_id])
+    assignee = relationship("Engineer", foreign_keys=[assignee_id])
     dependency = relationship("ProjectTask", remote_side=[id])
 
 class ProjectMember(Base):
