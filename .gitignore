@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.DS_Store
+deploy_to_lab.sh
+backend/venv
+frontend/node_modules
+frontend/dist
+.env
+.agent/
+brain/

@@ -160,6 +160,10 @@ class Project(Base):
     device_count = Column(Integer, default=0)
     device_type = Column(String, nullable=True)
 
+    # Phase 6: Sync with Apptio (US-Apptio.1)
+    finance_code = Column(String, nullable=True) # e.g. Cost Center or WBS
+    budget_cap = Column(Float, default=0.0)      # e.g. $150,000.00
+    
     # Status Update Fields
     latest_status_update = Column(Text, nullable=True)
     status_updated_at = Column(DateTime, nullable=True)

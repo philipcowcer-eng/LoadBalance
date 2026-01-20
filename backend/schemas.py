@@ -55,6 +55,10 @@ class ProjectCreate(ProjectBase):
     device_count: int = 0
     device_type: Optional[str] = None
 
+    # Apptio sync
+    finance_code: Optional[str] = None
+    budget_cap: Optional[float] = 0.0
+
 class AllocationCreate(AllocationBase):
     pass
 
@@ -77,13 +81,17 @@ class ProjectUpdate(BaseModel):
     workflow_status: Optional[WorkflowStatusEnum] = None
     project_type: Optional[str] = None
     size: Optional[str] = None
-    size: Optional[str] = None
     latest_status_update: Optional[str] = None
+    status_updated_at: Optional[datetime] = None
 
     # Epic 13 fields
     fiscal_year: Optional[str] = None
     device_count: Optional[int] = None
     device_type: Optional[str] = None
+    
+    # Apptio
+    finance_code: Optional[str] = None
+    budget_cap: Optional[float] = None
 
 class ProjectBulkUpdate(BaseModel):
     ids: List[UUID]

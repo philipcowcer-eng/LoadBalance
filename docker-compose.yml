@@ -6,15 +6,11 @@ services:
     container_name: resource_manager_backend
     restart: always
     environment:
-      # Configure allowed CORS origins (comma-separated)
-      - ALLOWED_ORIGINS=http://localhost:5173,https://planning.goodenough.to
-      # Database storage directory (mounted as volume)
-      - DATA_DIR=/app/data
-    # Only expose to internal network (frontend proxy handles external traffic)
+      # Use the host IP for Postgres connectivity
+      - DATABASE_URL=postgresql://postgres:password@192.168.68.72:5432/resource_manager
+      - ALLOWED_ORIGINS=http://localhost,http://192.168.68.72
     expose:
       - "8000"
-    volumes:
-      - backend_data:/app/data
 
   frontend:
     build: ./frontend
@@ -25,9 +21,4 @@ services:
     depends_on:
       - backend
 
-networks:
-  default:
-    driver: bridge
-
-volumes:
-  backend_data:
+# Note: We rely on the external Postgres instance (rm-postgres) running on the host.

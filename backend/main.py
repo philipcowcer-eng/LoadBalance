@@ -61,10 +61,11 @@ app.include_router(snapshot_router)
 app.include_router(scenarios.router, prefix="/api/scenarios", tags=["scenarios"])
 
 # Include project members router (US-2.5)
-from api import project_members, project_notes, utilization
+from api import project_members, project_notes, utilization, integrations
 app.include_router(project_members.router, prefix="/api", tags=["project-members"])
 app.include_router(project_notes.router, prefix="/api", tags=["project-notes"])
 app.include_router(utilization.router, prefix="/api", tags=["utilization"])
+app.include_router(integrations.router)
 
 
 # CORS Configuration - reads from environment variable or uses defaults
@@ -666,6 +667,20 @@ def create_project_allocation(project_id: UUID, allocation: schemas.ProjectAlloc
     
     db.commit()
     db.refresh(db_allocation)
+    
+    # Send Notification (Phase 6 - P1)
+    try:
+        from services.notification_service import notification_service
+        # Fetch names for the message
+        eng = db.query(models.Engineer).filter(models.Engineer.id == str(allocation.engineer_id)).first()
+        notification_service.notify_assignment(
+            allocation=db_allocation,
+            project_name=db_project.name,
+            engineer_name=eng.name if eng else "Unknown Engineer",
+            engineer_email=getattr(eng, "email", None)
+        )
+    except Exception as e:
+        print(f"Notification Error: {e}")
     
     # US-4.3: Record in system activity audit log
     record_audit(db, "CREATE", "Allocation", db_allocation.id, allocation.model_dump(), None, request)
