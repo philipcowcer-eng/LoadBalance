@@ -23,9 +23,9 @@ import UserManagement from './components/UserManagement';
 import BulkUpdateModal from './components/BulkUpdateModal';
 
 // Detect if running in production (via domain) or development (localhost)
-// In production, API calls go through nginx proxy at /api, so we use empty string
-// In dev, we need the full localhost URL
-const API_BASE = `http://${window.location.hostname}:8001`;
+// In production, API calls go through nginx proxy at /api so we use empty string
+// In dev, we can use the full localhost URL or rely on proxy
+const API_BASE = import.meta.env.VITE_API_BASE_URL || (window.location.hostname === 'localhost' ? 'http://localhost:8001' : '');
 
 // Utility for priority badges
 const PriorityBadge = ({ priority }) => {
