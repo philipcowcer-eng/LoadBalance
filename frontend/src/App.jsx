@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ScenarioBuilder from './components/ScenarioBuilder';
 import './App.css';
 import AddEngineerModal from './components/AddEngineerModal';
 import EditEngineerModal from './components/EditEngineerModal';
@@ -17,14 +18,14 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import ActivityLog from './components/ActivityLog';
 import SnapshotManager from './components/SnapshotManager';
 import BulkImportManager from './components/BulkImportManager';
+import UserGuide from './components/UserGuide';
 import UserManagement from './components/UserManagement';
+import BulkUpdateModal from './components/BulkUpdateModal';
 
 // Detect if running in production (via domain) or development (localhost)
 // In production, API calls go through nginx proxy at /api, so we use empty string
 // In dev, we need the full localhost URL
-const API_BASE = window.location.hostname === 'localhost'
-  ? 'http://localhost:8001'
-  : '';
+const API_BASE = `http://${window.location.hostname}:8001`;
 
 // Utility for priority badges
 const PriorityBadge = ({ priority }) => {
@@ -34,7 +35,7 @@ const PriorityBadge = ({ priority }) => {
 }
 
 function App({ isGuestMode = false }) {
-  const { user, logout, can } = useAuth();
+  const { user, logout, can, token } = useAuth();
   // Persist current page in localStorage
   const [currentPage, setCurrentPage] = useState(() => {
     if (isGuestMode) return 'projects';
@@ -66,6 +67,8 @@ function App({ isGuestMode = false }) {
   const [workflowFilter, setWorkflowFilter] = useState('All');
   const [projectRidEntries, setProjectRidEntries] = useState([]);
   const [currentProjectAllocations, setCurrentProjectAllocations] = useState([]);
+  const [currentProjectTasks, setCurrentProjectTasks] = useState([]);
+  const [tasksLoading, setTasksLoading] = useState(false);
   const [allAllocations, setAllAllocations] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [notification, setNotification] = useState({ show: false, type: '', message: '' });
@@ -116,6 +119,14 @@ function App({ isGuestMode = false }) {
   const [quickAddTarget, setQuickAddTarget] = useState(null); // { engineerId, anchorRect }
   const [hoveredEngineerId, setHoveredEngineerId] = useState(null); // For delete button visibility
 
+  // US-2.3 Bulk Operations State
+  const [selectedBulkProjectIds, setSelectedBulkProjectIds] = useState(new Set());
+  const [showBulkUpdateModal, setShowBulkUpdateModal] = useState(false);
+
+  // Gap Remediation - Phase 5
+  const [utilizationReport, setUtilizationReport] = useState(null);
+  const [skillFilter, setSkillFilter] = useState('');
+
   const fetchRidEntries = async (projectId) => {
     const pid = projectId || selectedProjectId;
     if (!pid) {
@@ -156,6 +167,29 @@ function App({ isGuestMode = false }) {
     }
   };
 
+  const fetchProjectTasks = async (projectId) => {
+    const pid = projectId || selectedProjectId;
+    if (!pid) {
+      setCurrentProjectTasks([]);
+      return;
+    }
+    setTasksLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/projects/${pid}/tasks`);
+      if (res.ok) {
+        const data = await res.json();
+        setCurrentProjectTasks(data);
+      } else {
+        setCurrentProjectTasks([]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch tasks:', error);
+      setCurrentProjectTasks([]);
+    } finally {
+      setTasksLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (selectedProjectId) {
       fetchRidEntries(selectedProjectId);
@@ -165,6 +199,7 @@ function App({ isGuestMode = false }) {
   useEffect(() => {
     if (selectedProjectId) {
       fetchAllocations(selectedProjectId);
+      fetchProjectTasks(selectedProjectId);
     }
   }, [selectedProjectId]);
 
@@ -229,6 +264,20 @@ function App({ isGuestMode = false }) {
     }
   };
 
+  const fetchUtilization = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      const res = await fetch(`${API_BASE}/api/utilization/report`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUtilizationReport(data);
+      }
+    } catch (err) { console.error("Failed to fetch utilization", err); }
+  };
+
   // Handle global events (for guest mode intake)
   useEffect(() => {
     const handleShowIntake = () => setShowIntakeModal(true);
@@ -250,9 +299,13 @@ function App({ isGuestMode = false }) {
     };
 
     try {
+      const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE}/api/projects`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(payload)
       });
       if (res.ok) {
@@ -293,6 +346,11 @@ function App({ isGuestMode = false }) {
       setNotification({ show: true, type: 'error', message: 'Error cloning scenario. Check console.' });
       setTimeout(() => setNotification({ show: false, type: '', message: '' }), 5000);
     }
+  };
+
+
+  const renderScenarioBuilder = () => {
+    return <ScenarioBuilder onBack={() => setCurrentPage('dashboard')} />;
   };
 
   const renderSidebar = () => (
@@ -1082,9 +1140,13 @@ function App({ isGuestMode = false }) {
     };
 
     try {
+      const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE}/api/projects/${projectId}/allocations`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(payload)
       });
 
@@ -1111,8 +1173,10 @@ function App({ isGuestMode = false }) {
 
   const handleDeleteAllocation = async (allocationId) => {
     try {
+      const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE}/api/allocations/${allocationId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
         await fetchData();
@@ -1128,9 +1192,13 @@ function App({ isGuestMode = false }) {
 
   const handleUpdateAllocation = async (allocationId, hours) => {
     try {
+      const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE}/api/allocations/${allocationId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ hours_per_week: hours })
       });
       if (res.ok) {
@@ -1149,8 +1217,10 @@ function App({ isGuestMode = false }) {
     }
 
     try {
+      const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE}/api/engineers/${engineerId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
         await fetchData();
@@ -1161,6 +1231,102 @@ function App({ isGuestMode = false }) {
       }
     } catch (error) {
       console.error("Error deleting engineer:", error);
+    }
+  };
+
+  // Bulk Operations Handlers
+  const handleBulkCheckboxChange = (projectId) => {
+    const newSelected = new Set(selectedBulkProjectIds);
+    if (newSelected.has(projectId)) {
+      newSelected.delete(projectId);
+    } else {
+      newSelected.add(projectId);
+    }
+    setSelectedBulkProjectIds(newSelected);
+  };
+
+  const handleBulkSelectAll = (projectsToSelect) => {
+    if (selectedBulkProjectIds.size === projectsToSelect.length) {
+      setSelectedBulkProjectIds(new Set()); // Deselect all
+    } else {
+      setSelectedBulkProjectIds(new Set(projectsToSelect.map(p => p.id)));
+    }
+  };
+
+  const handleBulkUpdate = async (updates) => {
+    try {
+      const payload = {
+        ids: Array.from(selectedBulkProjectIds),
+        ...updates
+      };
+
+      const res = await fetch(`${API_BASE}/api/projects/bulk`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setNotification({ show: true, type: 'success', message: `Successfully updated ${data.updated_count} projects.` });
+        setSelectedBulkProjectIds(new Set());
+        setShowBulkUpdateModal(false);
+        fetchData();
+      } else {
+        const err = await res.text();
+        setNotification({ show: true, type: 'error', message: `Bulk update failed: ${err}` });
+      }
+    } catch (error) {
+      console.error("Bulk update error:", error);
+      setNotification({ show: true, type: 'error', message: "Network error during bulk update." });
+    }
+  };
+
+
+
+  // US-4.2: Data Export Handler
+  const handleExportCSV = async (type) => {
+    try {
+      if (!token) {
+        alert("Please log in to export data.");
+        return;
+      }
+
+      setNotification({ show: true, type: 'info', message: 'Generating CSV export...' });
+
+      const endpoint = type === 'engineers' ? '/api/export/engineers' : '/api/export/projects';
+      // Pass current filters if needed (future improvement: AC-4.2.7)
+
+      const res = await fetch(`${API_BASE}${endpoint}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const dateStr = new Date().toISOString().split('T')[0];
+        a.download = `${type}_export_${dateStr}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        setNotification({ show: true, type: 'success', message: 'Export downloaded successfully.' });
+        setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+      } else {
+        const err = await res.text();
+        setNotification({ show: true, type: 'error', message: `Export failed: ${err}` });
+      }
+    } catch (error) {
+      console.error("Export error:", error);
+      setNotification({ show: true, type: 'error', message: "Network error during export." });
     }
   };
 
@@ -1229,43 +1395,59 @@ function App({ isGuestMode = false }) {
       return '#94A3B8'; // Gray
     };
 
+    // Gap Remediation: Calculate unique skills
+    const availableSkills = Array.from(new Set(
+      engineers.flatMap(e => {
+        if (Array.isArray(e.skills)) return e.skills;
+        if (typeof e.skills === 'string') return e.skills.split(',').map(s => s.trim()).filter(Boolean);
+        return [];
+      })
+    )).sort();
+
     // Calculate engineer utilization and weekly schedules
-    const engineerSchedules = engineers.map(eng => {
-      const effective = (eng.total_capacity || 40) - (eng.ktlo_tax || 0);
+    const engineerSchedules = engineers
+      .filter(eng => {
+        if (!skillFilter) return true;
+        const engSkills = Array.isArray(eng.skills) ? eng.skills : (typeof eng.skills === 'string' ? eng.skills.split(',').map(s => s.trim()) : []);
+        return engSkills.includes(skillFilter);
+      })
+      .map(eng => {
+        const effective = (eng.total_capacity || 40) - (eng.ktlo_tax || 0);
 
-      // Get all allocations for this engineer
-      const engAllocations = allAllocations.filter(a => a.engineer_id === eng.id);
+        // Get all allocations for this engineer
+        const engAllocations = allAllocations.filter(a => a.engineer_id === eng.id);
 
-      // SUM up daily hours into weekly project buckets
-      // Since our DB is one-set-of-days-fits-all-weeks, we calculate the weekly total once
-      const projectWeeklyTotals = {};
-      engAllocations.forEach(alloc => {
-        if (!projectWeeklyTotals[alloc.project_id]) {
-          const proj = projects.find(p => p.id === alloc.project_id);
-          projectWeeklyTotals[alloc.project_id] = {
-            id: alloc.project_id,
-            allocationId: alloc.id, // Store ID for quick updates
-            name: proj?.name || 'Loading...',
-            category: alloc.category,
-            hours: 0,
-            priority: proj?.priority || 'P3-Standard'
-          };
-        }
-        projectWeeklyTotals[alloc.project_id].hours += alloc.hours;
+        // SUM up daily hours into weekly project buckets
+        // Since our DB is one-set-of-days-fits-all-weeks, we calculate the weekly total once
+        const projectWeeklyTotals = {};
+        engAllocations.forEach(alloc => {
+          if (!projectWeeklyTotals[alloc.project_id]) {
+            const proj = projects.find(p => p.id === alloc.project_id);
+            projectWeeklyTotals[alloc.project_id] = {
+              id: alloc.project_id,
+              allocationId: alloc.id, // Store ID for quick updates
+              name: proj?.name || 'Loading...',
+              category: alloc.category,
+              hours: 0,
+              priority: proj?.priority || 'P3-Standard'
+            };
+          }
+          projectWeeklyTotals[alloc.project_id].hours += alloc.hours;
+        });
+
+        const weeklyAllocatedHours = Object.values(projectWeeklyTotals).reduce((sum, p) => sum + p.hours, 0);
+
+        return {
+          ...eng,
+          effective,
+          allocatedTotal: weeklyAllocatedHours,
+          projectWeeklyTotals: Object.values(projectWeeklyTotals),
+          utilizationPct: effective > 0 ? Math.round((weeklyAllocatedHours / effective) * 100) : 0
+        };
       });
 
-      const weeklyAllocatedHours = Object.values(projectWeeklyTotals).reduce((sum, p) => sum + p.hours, 0);
-
-      return {
-        ...eng,
-        effective,
-        allocatedTotal: weeklyAllocatedHours,
-        projectWeeklyTotals: Object.values(projectWeeklyTotals),
-        utilizationPct: effective > 0 ? Math.round((weeklyAllocatedHours / effective) * 100) : 0
-      };
-    });
-
     const teamOverloadCount = engineerSchedules.filter(e => e.utilizationPct > 100).length;
+    const teamAtRiskCount = engineerSchedules.filter(e => e.utilizationPct >= 85 && e.utilizationPct <= 100).length;
 
     // Calculate total unassigned hours dynamically
     const totalUnassignedHours = projects
@@ -1339,6 +1521,15 @@ function App({ isGuestMode = false }) {
                 </button>
                 <button className="btn" style={{ background: 'white', border: '1px solid #E2E8F0' }}>Cancel</button>
                 <button className="btn btn-primary" style={{ padding: '0.5rem 1.5rem' }}>Save Grid</button>
+                <button
+                  className="btn"
+                  onClick={() => handleExportCSV('engineers')}
+                  style={{ background: 'white', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#475569' }}
+                  title="Export Roster to CSV"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                  Export CSV
+                </button>
               </div>
             </div>
 
@@ -1355,17 +1546,23 @@ function App({ isGuestMode = false }) {
               <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
                   <span style={{ fontSize: '0.8125rem', color: '#475569' }}>Unassigned Hours:</span>
-                  <span style={{ fontWeight: 700, color: '#0F172A', fontSize: '1rem' }}>{totalUnassignedHours}h</span>
+                  <span style={{ fontWeight: 700, color: '#0F172A', fontSize: '1rem' }}>{utilizationReport ? utilizationReport.total_unassigned_hours : totalUnassignedHours}h</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
                   <span style={{ fontSize: '0.8125rem', color: '#475569' }}>Team Overload:</span>
-                  <span style={{ fontWeight: 700, color: '#EF4444', fontSize: '1rem' }}>{teamOverloadCount} Eng</span>
+                  <span style={{ fontWeight: 700, color: '#EF4444', fontSize: '1rem' }}>{utilizationReport ? utilizationReport.team_overload_count : teamOverloadCount} Eng</span>
                 </div>
+                {(utilizationReport ? utilizationReport.team_at_risk_count : teamAtRiskCount) > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '0.8125rem', color: '#475569' }}>At Risk:</span>
+                    <span style={{ fontWeight: 700, color: '#F59E0B', fontSize: '1rem' }}>{utilizationReport ? utilizationReport.team_at_risk_count : teamAtRiskCount} Eng</span>
+                  </div>
+                )}
               </div>
-              {teamOverloadCount > 0 && (
-                <div style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#B91C1C', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+              {(teamOverloadCount > 0 || teamAtRiskCount > 0) && (
+                <div style={{ marginLeft: 'auto', fontSize: '0.75rem', color: teamOverloadCount > 0 ? '#B91C1C' : '#B45309', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
-                  Capacity Alert: {teamOverloadCount} resources are currently over-allocated.
+                  Capacity Alert: {teamOverloadCount > 0 ? `${teamOverloadCount} resources overloaded` : ''} {teamOverloadCount > 0 && teamAtRiskCount > 0 ? '& ' : ''} {teamAtRiskCount > 0 ? `${teamAtRiskCount} at risk` : ''}.
                 </div>
               )}
             </div>
@@ -1375,7 +1572,19 @@ function App({ isGuestMode = false }) {
               <div style={{ flex: 1, overflow: 'auto', padding: '1.5rem 2rem', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ flex: 1, background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', overflow: 'auto', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column' }}>
                   <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, left: 0, zIndex: 30, background: 'white', borderRadius: '12px 12px 0 0' }}>
-                    <span style={{ fontWeight: 700, color: '#0F172A', fontSize: '1rem' }}>Team Schedule</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <span style={{ fontWeight: 700, color: '#0F172A', fontSize: '1rem' }}>Team Schedule</span>
+                      <select
+                        value={skillFilter}
+                        onChange={(e) => setSkillFilter(e.target.value)}
+                        style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid #E2E8F0', color: '#64748B', outline: 'none' }}
+                      >
+                        <option value="">All Skills</option>
+                        {availableSkills.map(skill => (
+                          <option key={skill} value={skill}>{skill}</option>
+                        ))}
+                      </select>
+                    </div>
                     <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem', color: '#64748B' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><div style={{ width: 8, height: 8, background: '#EF4444', borderRadius: '50%' }}></div> P1 Critical</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><div style={{ width: 8, height: 8, background: '#64748B', borderRadius: '50%' }}></div> KTLO</div>
@@ -1418,14 +1627,14 @@ function App({ isGuestMode = false }) {
 
                             {/* Capacity Bar */}
                             <div style={{ marginTop: '0.5rem' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6875rem', fontWeight: 700, marginBottom: '2px', color: eng.allocatedTotal > eng.effective ? '#EF4444' : '#10B981' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6875rem', fontWeight: 700, marginBottom: '2px', color: eng.allocatedTotal > eng.effective ? '#EF4444' : (eng.utilizationPct >= 85 ? '#F59E0B' : '#10B981') }}>
                                 <span>{eng.allocatedTotal}h / {eng.effective}h {eng.allocatedTotal > eng.effective && '(Over)'}</span>
                               </div>
                               <div style={{ height: '4px', background: '#F1F5F9', borderRadius: '2px', overflow: 'hidden' }}>
                                 <div style={{
                                   height: '100%',
                                   width: `${Math.min((eng.allocatedTotal / eng.effective) * 100, 100)}%`,
-                                  background: eng.allocatedTotal > eng.effective ? '#EF4444' : '#10B981',
+                                  background: eng.allocatedTotal > eng.effective ? '#EF4444' : (eng.utilizationPct >= 85 ? '#F59E0B' : '#10B981'),
                                   borderRadius: '2px'
                                 }}></div>
                               </div>
@@ -1695,16 +1904,57 @@ function App({ isGuestMode = false }) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#F8FAFC' }}>
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 2rem', background: 'white', borderBottom: '1px solid #E2E8F0' }}>
-          <div>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0F172A', margin: 0 }}>Project Registry</h2>
-            <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8125rem', color: '#64748B' }}>Manage the end-to-end lifecycle of infrastructure initiatives.</p>
+        {/* Header */}
+        {selectedBulkProjectIds.size > 0 ? (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 2rem', background: '#F0F9FF', borderBottom: '1px solid #BAE6FD' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ fontWeight: 600, color: '#0369A1' }}>{selectedBulkProjectIds.size} selected</div>
+              <button
+                onClick={() => setSelectedBulkProjectIds(new Set())}
+                style={{ border: 'none', background: 'transparent', color: '#0284C7', cursor: 'pointer', fontSize: '0.875rem', textDecoration: 'underline' }}
+              >
+                Clear Selection
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                className="btn"
+                onClick={() => handleExportCSV('projects')}
+                style={{ background: 'white', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#475569', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer' }}
+                title="Export Projects to CSV"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                Export CSV
+              </button>
+              {can('edit_project_registry') && (
+                <button
+                  className="btn btn-primary"
+                  style={{ background: '#0284C7', color: 'white', padding: '0.5rem 1rem', borderRadius: '6px', fontWeight: 500 }}
+                  onClick={() => setShowBulkUpdateModal(true)}
+                >
+                  Bulk Update
+                </button>
+              )}
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <button className="btn" style={{ background: 'white', border: '1px solid #E2E8F0', color: '#374151', padding: '0.5rem 1rem', borderRadius: '6px', fontWeight: 500 }}>Export List</button>
-            <button className="btn btn-primary" style={{ background: '#2563EB', color: 'white', padding: '0.5rem 1rem', borderRadius: '6px', fontWeight: 500 }} onClick={() => setShowIntakeModal(true)}>+ New Project</button>
+        ) : (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 2rem', background: 'white', borderBottom: '1px solid #E2E8F0' }}>
+            <div>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0F172A', margin: 0 }}>Project Registry</h2>
+              <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8125rem', color: '#64748B' }}>Manage the end-to-end lifecycle of infrastructure initiatives.</p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                className="btn"
+                onClick={() => handleExportCSV('projects')}
+                style={{ background: 'white', border: '1px solid #E2E8F0', color: '#374151', padding: '0.5rem 1rem', borderRadius: '6px', fontWeight: 500 }}
+              >
+                Export CSV
+              </button>
+              <button className="btn btn-primary" style={{ background: '#2563EB', color: 'white', padding: '0.5rem 1rem', borderRadius: '6px', fontWeight: 500 }} onClick={() => setShowIntakeModal(true)}>+ New Project</button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Workflow Tabs */}
         <div style={{ display: 'flex', gap: '0.25rem', padding: '0 2rem', background: 'white', borderBottom: '1px solid #E2E8F0', overflowX: 'auto' }}>
@@ -1758,7 +2008,7 @@ function App({ isGuestMode = false }) {
             </div>
 
             {/* Sub-Filter Tabs */}
-            <div style={{ display: 'flex', gap: '0.5rem', padding: '0 1rem 1rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', padding: '0 1rem 1rem', alignItems: 'center' }}>
               <button
                 onClick={() => setProjectFilter('all')}
                 style={{
@@ -1798,6 +2048,24 @@ function App({ isGuestMode = false }) {
                   cursor: 'pointer'
                 }}
               >At Risk</button>
+
+              <div style={{ flex: 1 }}></div>
+
+              <button
+                onClick={() => handleBulkSelectAll(filteredProjects)}
+                style={{
+                  padding: '0.375rem 0.75rem',
+                  borderRadius: '6px',
+                  border: '1px solid #E2E8F0',
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
+                  background: 'white',
+                  color: '#64748B',
+                  cursor: 'pointer'
+                }}
+              >
+                {filteredProjects.length > 0 && filteredProjects.every(p => selectedBulkProjectIds.has(p.id)) ? 'Deselect All' : 'Select All'}
+              </button>
             </div>
 
             {/* Project List */}
@@ -1815,6 +2083,27 @@ function App({ isGuestMode = false }) {
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                    {/* Bulk Selection Checkbox */}
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleBulkCheckboxChange(proj.id);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        paddingTop: '2px', // Align with text
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedBulkProjectIds.has(proj.id)}
+                        readOnly // Controlled by div onClick
+                        style={{ cursor: 'pointer' }}
+                      />
+                    </div>
                     <span style={{
                       background: getPriorityLabel(proj.priority) === 'P1' ? '#DC2626' :
                         getPriorityLabel(proj.priority) === 'P2' ? '#F59E0B' :
@@ -1901,7 +2190,7 @@ function App({ isGuestMode = false }) {
                       <div>
                         {selectedProject.fiscal_year && <span style={{ fontWeight: 700, color: '#4F46E5', marginRight: '0.5rem', background: '#EEF2FF', padding: '0.125rem 0.375rem', borderRadius: '4px', border: '1px solid #C7D2FE', fontSize: '0.75rem' }}>{selectedProject.fiscal_year}</span>}
                         {selectedProject.project_number && <span style={{ fontWeight: 600, color: '#475569', marginRight: '0.5rem' }}>#{selectedProject.project_number}</span>}
-                        Owner: {engineers.find(e => e.id === selectedProject.owner_id)?.name || 'Unassigned'} • {formatDate(selectedProject.start_date)} - {formatDate(selectedProject.target_end_date)}
+                        Owner: {engineers.find(e => e.id === selectedProject.owner_id)?.name || 'Unassigned'} • PM: {engineers.find(e => e.id === selectedProject.manager_id)?.name || 'Unassigned'} • {formatDate(selectedProject.start_date)} - {formatDate(selectedProject.target_end_date)}
                       </div>
                       {selectedProject.project_site && (
                         <a
@@ -2063,6 +2352,131 @@ function App({ isGuestMode = false }) {
                   )}
                 </div>
 
+                {/* PROJECT TASKS SNAPSHOT (WBS) */}
+                <div style={{ marginBottom: '2rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#0F172A', margin: 0 }}>Project Tasks</h4>
+                    <button
+                      className="btn btn-primary"
+                      style={{ background: '#1E293B', color: 'white', padding: '0.375rem 0.75rem', borderRadius: '6px', fontSize: '0.75rem' }}
+                      onClick={() => setManagingProjectId(selectedProject.id)}
+                    >
+                      View Full Plan
+                    </button>
+                  </div>
+
+                  <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '8px', overflow: 'hidden' }}>
+                    {/* Task Summary Banner */}
+                    <div style={{
+                      display: 'flex', gap: '2rem', padding: '1rem 1.5rem',
+                      background: '#F8FAFC', borderBottom: '1px solid #E2E8F0',
+                      alignItems: 'center'
+                    }}>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0F172A' }}>
+                          {currentProjectTasks.filter(t => t.status !== 'done' && t.status !== 'cancelled').length}
+                        </span>
+                        <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>Open</span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#EF4444' }}>
+                          {currentProjectTasks.filter(t => t.status === 'blocked').length}
+                        </span>
+                        <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>Blocked</span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#10B981' }}>
+                          {currentProjectTasks.filter(t => t.status === 'done').length}
+                        </span>
+                        <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>Done</span>
+                      </div>
+                    </div>
+
+                    {/* Critical Task List */}
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      {currentProjectTasks.length === 0 ? (
+                        <div style={{ padding: '2rem', textAlign: 'center', color: '#94A3B8', fontSize: '0.875rem' }}>
+                          No tasks defined yet.
+                        </div>
+                      ) : (
+                        currentProjectTasks
+                          .filter(t => t.status !== 'done' && t.status !== 'cancelled') // Only show active tasks
+                          .sort((a, b) => {
+                            // 1. Blocked first
+                            if (a.status === 'blocked' && b.status !== 'blocked') return -1;
+                            if (a.status !== 'blocked' && b.status === 'blocked') return 1;
+
+                            // 2. Overdue next (if not blocked)
+                            const now = new Date();
+                            const aOverdue = a.end_date && new Date(a.end_date) < now;
+                            const bOverdue = b.end_date && new Date(b.end_date) < now;
+                            if (aOverdue && !bOverdue) return -1;
+                            if (!aOverdue && bOverdue) return 1;
+
+                            // 3. Priority (P1 > P2 ...)
+                            return (a.priority || 4) - (b.priority || 4);
+                          })
+                          .slice(0, 5) // Show top 5
+                          .map(task => {
+                            const assignee = engineers.find(e => e.id === task.assignee_id);
+                            const isOverdue = task.end_date && new Date(task.end_date) < new Date() && task.status !== 'done';
+
+                            return (
+                              <div key={task.id} style={{
+                                display: 'flex', alignItems: 'center', gap: '0.75rem',
+                                padding: '0.75rem 1.5rem', borderBottom: '1px solid #F1F5F9'
+                              }}>
+                                {/* Status Dot */}
+                                <div style={{
+                                  width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0,
+                                  background: task.status === 'blocked' ? '#EF4444' :
+                                    task.status === 'in_progress' ? '#3B82F6' : '#E2E8F0'
+                                }}></div>
+
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span style={{
+                                      fontSize: '0.875rem', fontWeight: 500, color: '#334155',
+                                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                                    }}>{task.title}</span>
+                                    {task.priority === 1 && (
+                                      <span style={{ fontSize: '0.625rem', padding: '1px 4px', borderRadius: '2px', background: '#FEE2E2', color: '#B91C1C', fontWeight: 700 }}>P1</span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Assignee Avatar */}
+                                <div title={assignee?.name || 'Unassigned'} style={{
+                                  width: '24px', height: '24px', borderRadius: '50%',
+                                  background: assignee ? '#DBEAFE' : '#F1F5F9',
+                                  color: assignee ? '#1E40AF' : '#94A3B8',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  fontSize: '0.625rem', fontWeight: 600
+                                }}>
+                                  {assignee ? assignee.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '?'}
+                                </div>
+
+                                {/* Date */}
+                                <div style={{ fontSize: '0.75rem', color: isOverdue ? '#EF4444' : '#64748B', width: '80px', textAlign: 'right' }}>
+                                  {task.end_date ? new Date(task.end_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '-'}
+                                </div>
+                              </div>
+                            );
+                          })
+                      )}
+                      {currentProjectTasks.filter(t => t.status !== 'done' && t.status !== 'cancelled').length > 5 && (
+                        <div style={{
+                          padding: '0.75rem', textAlign: 'center', fontSize: '0.75rem',
+                          color: '#6366F1', fontWeight: 500, cursor: 'pointer',
+                          background: '#F8FAFC'
+                        }} onClick={() => setManagingProjectId(selectedProject.id)}>
+                          View all {currentProjectTasks.filter(t => t.status !== 'done' && t.status !== 'cancelled').length} open tasks →
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
 
                 {/* KPI Cards */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
@@ -2138,20 +2552,22 @@ function App({ isGuestMode = false }) {
 
                 {/* Timeline Progress */}
                 <div style={{ marginBottom: '2rem' }}>
-                  <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#0F172A', marginBottom: '1rem' }}>Timeline Progress</h4>
-                  <div style={{ background: '#E2E8F0', borderRadius: '8px', height: '32px', position: 'relative', overflow: 'hidden' }}>
-                    <div style={{
-                      background: '#3B82F6',
-                      height: '100%',
-                      width: `${selectedProject.percent_complete || 0}%`,
-                      borderRadius: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      paddingLeft: '1rem'
-                    }}>
-                      <span style={{ color: 'white', fontSize: '0.75rem', fontWeight: 600 }}>{selectedProject.percent_complete || 0}%</span>
-                    </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#0F172A', margin: 0 }}>Timeline Progress</h4>
+                    <span style={{ fontSize: '0.875rem', color: '#64748B', fontWeight: 500 }}>
+                      Week {Math.ceil((new Date() - new Date(selectedProject.start_date)) / (1000 * 60 * 60 * 24 * 7)) || 1} of {Math.ceil((new Date(selectedProject.target_end_date) - new Date(selectedProject.start_date)) / (1000 * 60 * 60 * 24 * 7)) || 0}
+                    </span>
                   </div>
+
+                  <div style={{ height: '8px', background: '#E2E8F0', borderRadius: '4px', overflow: 'hidden', position: 'relative' }}>
+                    <div style={{
+                      width: `${Math.min(100, Math.max(0, ((new Date() - new Date(selectedProject.start_date)) / (new Date(selectedProject.target_end_date) - new Date(selectedProject.start_date))) * 100))}%`,
+                      height: '100%',
+                      background: '#4F46E5',
+                      borderRadius: '4px'
+                    }}></div>
+                  </div>
+
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem' }}>
                     <span style={{ fontSize: '0.75rem', color: '#64748B' }}>{formatDate(selectedProject.start_date)}</span>
                     <span style={{ fontSize: '0.75rem', color: '#64748B' }}>{formatDate(selectedProject.target_end_date)}</span>
@@ -2240,111 +2656,101 @@ function App({ isGuestMode = false }) {
         </div>
 
         {/* Modals */}
-        {showIntakeModal && (
-          <div className="modal-overlay active">
-            <div className="modal" style={{ width: 500 }}>
-              <div className="modal-header">
-                <h3>Submit Project Request</h3>
-                <button className="modal-close" onClick={() => setShowIntakeModal(false)}>&times;</button>
-              </div>
-              <form onSubmit={createProject}>
-                <div className="modal-body">
-                  <div className="form-group">
-                    <label className="form-label">Project Name <span className="required">*</span></label>
-                    <input name="name" className="form-input" placeholder="e.g. Data Center Refresh" required />
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+        {
+          showIntakeModal && (
+            <div className="modal-overlay active">
+              <div className="modal" style={{ width: 500 }}>
+                <div className="modal-header">
+                  <h3>Submit Project Request</h3>
+                  <button className="modal-close" onClick={() => setShowIntakeModal(false)}>&times;</button>
+                </div>
+                <form onSubmit={createProject}>
+                  <div className="modal-body">
                     <div className="form-group">
-                      <label className="form-label">Priority Level</label>
-                      <select name="priority" className="form-select">
-                        <option value="P1-Critical">P1 - Critical</option>
-                        <option value="P2-Strategic">P2 - Strategic</option>
-                        <option value="P3-Standard">P3 - Standard</option>
-                        <option value="P4-Low">P4 - Low</option>
+                      <label className="form-label">Project Name <span className="required">*</span></label>
+                      <input name="name" className="form-input" placeholder="e.g. Data Center Refresh" required />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                      <div className="form-group">
+                        <label className="form-label">Priority Level</label>
+                        <select name="priority" className="form-select">
+                          <option value="P1-Critical">P1 - Critical</option>
+                          <option value="P2-Strategic">P2 - Strategic</option>
+                          <option value="P3-Standard">P3 - Standard</option>
+                          <option value="P4-Low">P4 - Low</option>
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Target Date</label>
+                        <input type="date" name="target_end_date" className="form-input" />
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Estimated Size</label>
+                      <select name="size" className="form-select">
+                        <option value="S">Small (3h/wk)</option>
+                        <option value="M">Medium (5h/wk)</option>
+                        <option value="L">Large (8h/wk)</option>
+                        <option value="XL">Extra Large (13h/wk)</option>
                       </select>
                     </div>
+
                     <div className="form-group">
-                      <label className="form-label">Target Date</label>
-                      <input type="date" name="target_end_date" className="form-input" />
+                      <label className="form-label">Business Justification <span className="required">*</span></label>
+                      <textarea name="business_justification" className="form-textarea" placeholder="Why is this work important?" required style={{ minHeight: '100px' }}></textarea>
                     </div>
                   </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Estimated Size</label>
-                    <select name="size" className="form-select">
-                      <option value="S">Small (3h/wk)</option>
-                      <option value="M">Medium (5h/wk)</option>
-                      <option value="L">Large (8h/wk)</option>
-                      <option value="XL">Extra Large (13h/wk)</option>
-                    </select>
+                  <div className="modal-footer">
+                    <button type="button" className="btn" onClick={() => setShowIntakeModal(false)}>Cancel</button>
+                    <button type="submit" className="btn btn-primary">Submit Request</button>
                   </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Business Justification <span className="required">*</span></label>
-                    <textarea name="business_justification" className="form-textarea" placeholder="Why is this work important?" required style={{ minHeight: '100px' }}></textarea>
-                  </div>
-                </div>
-                <div className="modal-footer">
-                  <button type="button" className="btn" onClick={() => setShowIntakeModal(false)}>Cancel</button>
-                  <button type="submit" className="btn btn-primary">Submit Request</button>
-                </div>
-              </form>
+                </form>
+              </div>
             </div>
-          </div>
-        )}
+          )
+        }
 
-        {managingProjectId && (
-          <ProjectDetailModal
-            project={projects.find(p => p.id === managingProjectId)}
-            onClose={() => setManagingProjectId(null)}
-            engineers={engineers}
-            onProjectUpdate={fetchData}
-          />
-        )}
+        {
+          managingProjectId && (
+            <ProjectDetailModal
+              project={projects.find(p => p.id === managingProjectId)}
+              onClose={() => setManagingProjectId(null)}
+              engineers={engineers}
+              onProjectUpdate={fetchData}
+            />
+          )
+        }
 
-        {showAddRidModal && selectedProjectId && (
-          <AddRidModal
-            projectId={selectedProjectId}
-            onClose={() => setShowAddRidModal(false)}
-            onSave={() => {
-              const fetchRidEntries = async () => {
-                try {
-                  const res = await fetch(`${API_BASE}/api/projects/${selectedProjectId}/rid-log`);
-                  if (res.ok) {
-                    const data = await res.json();
-                    setProjectRidEntries(data);
+        {
+          showAddRidModal && selectedProjectId && (
+            <AddRidModal
+              projectId={selectedProjectId}
+              onClose={() => setShowAddRidModal(false)}
+              onSave={() => {
+                const fetchRidEntries = async () => {
+                  try {
+                    const res = await fetch(`${API_BASE}/api/projects/${selectedProjectId}/rid-log`);
+                    if (res.ok) {
+                      const data = await res.json();
+                      setProjectRidEntries(data);
+                    }
+                  } catch (error) {
+                    console.error('Failed to refresh RID entries:', error);
                   }
-                } catch (error) {
-                  console.error('Failed to refresh RID entries:', error);
-                }
-              };
-              fetchRidEntries();
-            }}
-          />
-        )}
-      </div>
+                };
+                fetchRidEntries();
+              }}
+            />
+          )
+        }
+      </div >
     );
   };
 
   const renderSupport = () => (
-    <div className="support-content">
-      <div className="top-bar">
-        <h2>Support & Documentation</h2>
-      </div>
-      <div className="card">
-        <div className="card-header">Help Center</div>
-        <div className="card-body">
-          <p>Welcome to the Resource Manager Help Center.</p>
-          <br />
-          <h3>Getting Started</h3>
-          <ul style={{ marginLeft: '1.5rem', marginTop: '0.5rem' }}>
-            <li><a href="#">User Guide</a></li>
-            <li><a href="#">FAQ</a></li>
-          </ul>
-        </div>
-      </div>
-    </div>
+    <UserGuide />
   );
 
   return (
@@ -2676,6 +3082,7 @@ function App({ isGuestMode = false }) {
                 </div>
               </div>
             )}
+            {currentPage === 'scenario' && renderScenarioBuilder()}
             {currentPage === 'support' && renderSupport()}
 
             {/* Admin Page Content */}
@@ -2701,6 +3108,31 @@ function App({ isGuestMode = false }) {
           allocations={allAllocations.filter(a => a.engineer_id === profileEngineer.id)}
           projects={projects}
           onClose={() => setProfileEngineer(null)}
+          onEdit={(eng) => {
+            setProfileEngineer(null);
+            setEditingEngineer(eng);
+          }}
+        />
+      )}
+
+      {/* Edit Engineer Modal */}
+      {editingEngineer && (
+        <EditEngineerModal
+          engineer={editingEngineer}
+          onClose={() => setEditingEngineer(null)}
+          onSave={() => {
+            setEditingEngineer(null);
+            fetchData();
+          }}
+        />
+      )}
+
+      {/* Bulk Update Modal */}
+      {showBulkUpdateModal && (
+        <BulkUpdateModal
+          selectedCount={selectedBulkProjectIds.size}
+          onClose={() => setShowBulkUpdateModal(false)}
+          onSave={handleBulkUpdate}
         />
       )}
     </div>

@@ -20,10 +20,12 @@ const AddRidModal = ({ projectId, onClose, onSave }) => {
 
             const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8001' : '';
 
+            const token = localStorage.getItem('token');
             const res = await fetch(`${API_BASE}/api/projects/${projectId}/rid-log`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify(formData),
             });

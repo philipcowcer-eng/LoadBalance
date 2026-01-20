@@ -17,6 +17,7 @@ import io
 
 import models
 from database import get_db
+from utils import record_audit
 
 # =============================================================================
 # Export Router
@@ -29,15 +30,15 @@ export_router = APIRouter(prefix="/api/export", tags=["Export"])
 def export_engineers(db: Session = Depends(get_db)):
     """
     Export all engineers to CSV.
-    Columns: id, name, role, total_capacity, ktlo_tax
+    Columns: id, name, role, total_capacity, ktlo_tax, created_at
     """
     engineers = db.query(models.Engineer).all()
     
     output = io.StringIO()
     writer = csv.writer(output)
     
-    # Header row
-    writer.writerow(["id", "name", "role", "total_capacity", "ktlo_tax"])
+    # Header row (AC-4.2.3)
+    writer.writerow(["id", "name", "role", "total_capacity", "ktlo_tax", "created_at"])
     
     # Data rows
     for e in engineers:
@@ -46,11 +47,14 @@ def export_engineers(db: Session = Depends(get_db)):
             e.name,
             e.role.value if e.role else "",
             e.total_capacity,
-            e.ktlo_tax
+            e.ktlo_tax,
+            getattr(e, 'created_at', None).isoformat() if getattr(e, 'created_at', None) else ""
         ])
     
     output.seek(0)
     filename = f"engineers_{date.today().isoformat()}.csv"
+    
+    record_audit(db, "EXPORT", "Engineer", details={"format": "CSV", "count": len(engineers)})
     
     return StreamingResponse(
         iter([output.getvalue()]),
@@ -63,18 +67,18 @@ def export_engineers(db: Session = Depends(get_db)):
 def export_projects(db: Session = Depends(get_db)):
     """
     Export all projects to CSV.
-    Columns: id, name, project_number, priority, workflow_status, status, 
-             start_date, target_end_date, owner_name
+    Columns per AC-4.2.6: id, name, priority, workflow_status, rag_status, 
+                          fiscal_year, start_date, target_end_date, pm_name, percent_complete
     """
     projects = db.query(models.Project).all()
     
     output = io.StringIO()
     writer = csv.writer(output)
     
-    # Header row
+    # Header row (AC-4.2.6)
     writer.writerow([
-        "id", "name", "project_number", "priority", "workflow_status", 
-        "status", "start_date", "target_end_date", "business_justification"
+        "id", "name", "priority", "workflow_status", "rag_status",
+        "fiscal_year", "start_date", "target_end_date", "pm_name", "percent_complete"
     ])
     
     # Data rows
@@ -82,17 +86,20 @@ def export_projects(db: Session = Depends(get_db)):
         writer.writerow([
             p.id,
             p.name,
-            p.project_number or "",
             p.priority.value if p.priority else "",
             p.workflow_status.value if p.workflow_status else "",
-            p.status.value if p.status else "",
+            p.status.value if p.status else "",  # rag_status
+            getattr(p, 'fiscal_year', '') or "",
             p.start_date.isoformat() if p.start_date else "",
             p.target_end_date.isoformat() if p.target_end_date else "",
-            (p.business_justification or "").replace("\n", " ")[:200]  # Truncate for CSV
+            getattr(p, 'pm_name', '') or "",
+            getattr(p, 'percent_complete', '') or ""
         ])
     
     output.seek(0)
     filename = f"projects_{date.today().isoformat()}.csv"
+    
+    record_audit(db, "EXPORT", "Project", details={"format": "CSV", "count": len(projects)})
     
     return StreamingResponse(
         iter([output.getvalue()]),
@@ -137,6 +144,8 @@ def export_allocations(db: Session = Depends(get_db)):
     
     output.seek(0)
     filename = f"allocations_{date.today().isoformat()}.csv"
+    
+    record_audit(db, "EXPORT", "Allocation", details={"format": "CSV", "count": len(allocations)})
     
     return StreamingResponse(
         iter([output.getvalue()]),

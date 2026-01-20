@@ -9,7 +9,7 @@ This module provides CSV import endpoints for:
 Admin only.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List
@@ -18,6 +18,7 @@ import io
 
 import models
 from database import get_db
+from utils import record_audit
 
 # =============================================================================
 # Schemas
@@ -37,12 +38,12 @@ import_router = APIRouter(prefix="/api/import", tags=["Import"])
 
 
 @import_router.post("/engineers", response_model=ImportResult)
-async def import_engineers(file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def import_engineers(request: Request, file: UploadFile = File(...), db: Session = Depends(get_db)):
     """
     Import engineers from CSV.
     Expected columns: name, role, total_capacity, ktlo_tax
     
-    Duplicates (by name) are skipped.
+    Existing records (matched by name) are updated. New records are created.
     """
     if not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="File must be a CSV")
@@ -66,13 +67,6 @@ async def import_engineers(file: UploadFile = File(...), db: Session = Depends(g
                 skipped += 1
                 continue
             
-            # Check for duplicate
-            existing = db.query(models.Engineer).filter(models.Engineer.name == name).first()
-            if existing:
-                errors.append(f"Row {i}: '{name}' already exists (skipped)")
-                skipped += 1
-                continue
-            
             # Parse role
             role_str = row.get('role', 'Network Engineer').strip()
             if role_str not in valid_roles:
@@ -89,6 +83,16 @@ async def import_engineers(file: UploadFile = File(...), db: Session = Depends(g
                 ktlo_tax = int(row.get('ktlo_tax', 0))
             except ValueError:
                 ktlo_tax = 0
+
+            # Check for duplicate
+            existing = db.query(models.Engineer).filter(models.Engineer.name == name).first()
+            if existing:
+                # Update existing engineer
+                existing.role = models.RoleEnum(role_str)
+                existing.total_capacity = total_capacity
+                existing.ktlo_tax = ktlo_tax
+                imported += 1
+                continue
             
             # Create engineer
             engineer = models.Engineer(
@@ -106,16 +110,19 @@ async def import_engineers(file: UploadFile = File(...), db: Session = Depends(g
     
     db.commit()
     
+    # US-4.3: Record in system activity audit log
+    record_audit(db, "IMPORT", "Engineer", None, {"imported": imported, "skipped": skipped}, None, request)
+    
     return ImportResult(imported=imported, skipped=skipped, errors=errors[:20])  # Limit errors
 
 
 @import_router.post("/projects", response_model=ImportResult)
-async def import_projects(file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def import_projects(request: Request, file: UploadFile = File(...), db: Session = Depends(get_db)):
     """
     Import projects from CSV.
     Expected columns: name, priority, start_date, target_end_date, workflow_status, business_justification
     
-    Duplicates (by name) are skipped.
+    Existing records (matched by name) are updated. New records are created.
     """
     if not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="File must be a CSV")
@@ -140,13 +147,6 @@ async def import_projects(file: UploadFile = File(...), db: Session = Depends(ge
                 skipped += 1
                 continue
             
-            # Check for duplicate
-            existing = db.query(models.Project).filter(models.Project.name == name).first()
-            if existing:
-                errors.append(f"Row {i}: '{name}' already exists (skipped)")
-                skipped += 1
-                continue
-            
             # Parse priority
             priority_str = row.get('priority', 'P2-Strategic').strip()
             if priority_str not in valid_priorities:
@@ -167,15 +167,29 @@ async def import_projects(file: UploadFile = File(...), db: Session = Depends(ge
                 try:
                     start_date = datetime.fromisoformat(start_str).date()
                 except ValueError:
-                    pass
+                    errors.append(f"Row {i}: Invalid date format for start_date (expected YYYY-MM-DD)")
             
             end_str = row.get('target_end_date', '').strip()
             if end_str:
                 try:
                     target_end_date = datetime.fromisoformat(end_str).date()
                 except ValueError:
-                    pass
+                    errors.append(f"Row {i}: Invalid date format for target_end_date (expected YYYY-MM-DD)")
             
+            # Check for duplicate
+            existing = db.query(models.Project).filter(models.Project.name == name).first()
+
+            if existing:
+                # Update existing project
+                existing.priority = models.PriorityEnum(priority_str)
+                existing.workflow_status = models.WorkflowStatusEnum(status_str)
+                if start_date: existing.start_date = start_date
+                if target_end_date: existing.target_end_date = target_end_date
+                if row.get('business_justification'):
+                    existing.business_justification = row.get('business_justification', '')[:500]
+                imported += 1
+                continue
+
             # Create project
             project = models.Project(
                 name=name,
@@ -193,5 +207,8 @@ async def import_projects(file: UploadFile = File(...), db: Session = Depends(ge
             skipped += 1
     
     db.commit()
+    
+    # US-4.3: Record in system activity audit log
+    record_audit(db, "IMPORT", "Project", None, {"imported": imported, "skipped": skipped}, None, request)
     
     return ImportResult(imported=imported, skipped=skipped, errors=errors[:20])

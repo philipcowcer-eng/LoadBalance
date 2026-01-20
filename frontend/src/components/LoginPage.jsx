@@ -92,36 +92,38 @@ const LoginPage = ({ onSuccess, showIntake }) => {
                         />
                     </div>
 
-                    <div style={{ marginBottom: '1.25rem' }}>
-                        <label style={{
-                            display: 'block',
-                            marginBottom: '0.5rem',
-                            fontSize: '0.875rem',
-                            fontWeight: '500',
-                            color: '#374151'
-                        }}>
-                            Role
-                        </label>
-                        <select
-                            value={role}
-                            onChange={(e) => setRole(e.target.value)}
-                            style={{
-                                width: '100%',
-                                padding: '0.75rem 1rem',
-                                border: '1px solid #E2E8F0',
-                                borderRadius: '8px',
-                                fontSize: '1rem',
-                                outline: 'none',
-                                transition: 'border-color 0.2s',
-                                boxSizing: 'border-box',
-                                background: 'white'
-                            }}
-                        >
-                            <option value="engineer">Engineer</option>
-                            <option value="project_manager">Project Manager</option>
-                            <option value="resource_manager">Resource Manager</option>
-                        </select>
-                    </div>
+                    {isRegistering && (
+                        <div style={{ marginBottom: '1.25rem' }}>
+                            <label style={{
+                                display: 'block',
+                                marginBottom: '0.5rem',
+                                fontSize: '0.875rem',
+                                fontWeight: '500',
+                                color: '#374151'
+                            }}>
+                                Role
+                            </label>
+                            <select
+                                value={role}
+                                onChange={(e) => setRole(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '0.75rem 1rem',
+                                    border: '1px solid #E2E8F0',
+                                    borderRadius: '8px',
+                                    fontSize: '1rem',
+                                    outline: 'none',
+                                    transition: 'border-color 0.2s',
+                                    boxSizing: 'border-box',
+                                    background: 'white'
+                                }}
+                            >
+                                <option value="engineer">Engineer</option>
+                                <option value="project_manager">Project Manager</option>
+                                <option value="resource_manager">Resource Manager</option>
+                            </select>
+                        </div>
+                    )}
 
                     <div style={{ marginBottom: '1.5rem' }}>
                         <label style={{

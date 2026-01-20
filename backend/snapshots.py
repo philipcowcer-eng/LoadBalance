@@ -6,7 +6,7 @@ This module provides functionality to Create, List, and Restore database snapsho
 Uses SQLite's full database file copy for safety.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request
 from sqlalchemy.orm import Session
 import os
 import shutil
@@ -16,7 +16,9 @@ from pydantic import BaseModel
 
 import models
 from database import get_db
-from auth import get_current_user, require_role
+from auth import get_current_user, require_permission
+from permissions import PERM_RESTORE_SNAPSHOT
+from utils import record_audit
 
 # =============================================================================
 # Schemas
@@ -48,7 +50,7 @@ if not os.path.exists(SNAPSHOT_DIR):
 snapshot_router = APIRouter(prefix="/api/snapshots", tags=["Snapshots"])
 
 @snapshot_router.post("/create", response_model=SnapshotInfo)
-def create_snapshot(current_user: models.User = Depends(require_role("admin"))):
+def create_snapshot(request: Request, db: Session = Depends(get_db), current_user: models.User = Depends(require_permission(PERM_RESTORE_SNAPSHOT))):
     """ Create a full backup of the current database """
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"snapshot_{timestamp}.db"
@@ -61,6 +63,8 @@ def create_snapshot(current_user: models.User = Depends(require_role("admin"))):
         
         size = os.path.getsize(dest_path) / 1024
         
+        record_audit(db, "CREATE", "Snapshot", filename, {"size_kb": size}, current_user, request)
+        
         return SnapshotInfo(
             filename=filename,
             created_at=datetime.now(),
@@ -70,7 +74,7 @@ def create_snapshot(current_user: models.User = Depends(require_role("admin"))):
         raise HTTPException(status_code=500, detail=f"Failed to create snapshot: {str(e)}")
 
 @snapshot_router.get("/", response_model=List[SnapshotInfo])
-def list_snapshots(current_user: models.User = Depends(require_role("admin"))):
+def list_snapshots(current_user: models.User = Depends(require_permission(PERM_RESTORE_SNAPSHOT))):
     """ List all available snapshots """
     snapshots = []
     
@@ -87,7 +91,7 @@ def list_snapshots(current_user: models.User = Depends(require_role("admin"))):
     return sorted(snapshots, key=lambda x: x.created_at, reverse=True)
 
 @snapshot_router.post("/restore/{filename}")
-def restore_snapshot(filename: str, current_user: models.User = Depends(require_role("admin"))):
+def restore_snapshot(filename: str, request: Request, db: Session = Depends(get_db), current_user: models.User = Depends(require_permission(PERM_RESTORE_SNAPSHOT))):
     """ 
     Restore the database to a previous state.
     CAUTION: This will overwrite current data.
@@ -106,6 +110,8 @@ def restore_snapshot(filename: str, current_user: models.User = Depends(require_
         # Note: In production uvicorn/fastapi, the DB file might be locked. 
         # The user will need to restart the container for the best result.
         shutil.copy2(snapshot_path, DB_PATH)
+        
+        record_audit(db, "RESTORE", "Snapshot", filename, {"safety_backup": safety_name}, current_user, request)
         
         return {"message": "Database restored successfully. Please RESTART the server to ensure all connections are refreshed."}
     except Exception as e:

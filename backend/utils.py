@@ -33,6 +33,7 @@ def record_audit(
             details=details_str,
             ip_address=ip
         )
+        print(f"DEBUG: Recording Audit: {action} on {resource_type} (ID: {resource_id})")
         db.add(audit)
         db.commit()
     except Exception as e:

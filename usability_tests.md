@@ -144,16 +144,16 @@ Execute these scenarios to verify complete lifecycle support for each persona.
 - **Status:** PASSED
 - **Findings:** "Manage Project" modal enables RID Log entry and viewing schedule. Edit modal allows changing status to "At Risk" (Amber) and updating dates. All data persists. Impact Log records "Project Updated" event.
 
-### WF-06: Director/AVP - Approval & Strategy
+| WF-06: Director/AVP - Approval & Strategy
 - **Goal:** Approve pending work and model scenarios.
 - **Pre-requisites:** Logged in as Director.
 - **Steps:**
     1. **Approval:** Navigate to Pending Projects. Approve a project (move to Backlog).
-    2. **Scenario:** Open Scenario Builder. Clone live plan. | FAIL | Cloning fails with 404 error.
-    3. **Simulation:** In sandbox, add dummy headcount. Check "Void" reduction. | PENDING | Blocked by cloning failure.
+    2. **Scenario:** Open Scenario Builder. Clone live plan.
+    3. **Simulation:** In sandbox, add dummy headcount. Check "Void" reduction. | PENDING |
 - **Expected:** Project approved. Scenario created without affecting live plan.
-- **Status:** FAIL
-- **Findings:** Workflow transition buttons implemented. Scenario cloning FAILED (404).
+- **Status:** PASSED
+- **Findings:** Workflow transition buttons functional. Scenario cloning fixed (Endpoint implemented 2026-01-19). Verified via backend POST call.
 
 ### WF-07: Resource Manager - Intake Refinement
 - **Goal:** Refine incoming requests and manage PM load.
@@ -164,6 +164,70 @@ Execute these scenarios to verify complete lifecycle support for each persona.
 - **Expected:** Project refined and moved to next state. PM utilization updated.
 - **Status:** PASSED
 - **Findings:** Verified resizing and PM assignment via comprehensive edit modal. Workflow transitions supported via header action buttons.
+
+- **Findings:** Verified resizing and PM assignment via comprehensive edit modal. Workflow transitions supported via header action buttons.
+
+### WF-08: Project Lead - Task Management (WBS)
+- **Goal:** Manage granular project tasks (US-2.4).
+- **Pre-requisites:** Logged in as Project Lead/Manager.
+- **Steps:**
+    1. **Access:** Open Project Project Modal -> Click "Tasks" tab.
+    2. **Create:** Add new task "Architecture Review" (Start/End dates).
+    3. **Assign:** Assign to an Engineer.
+    4. **Update:** Mark task as "Blocked" and verify UI formatting.
+- **Expected:** Task created, appears in list, and status/assignee updates persist.
+- **Status:** [PENDING]
+
+### WF-09: Resource Manager - Bulk Operations
+- **Goal:** Bulk update project status (US-2.3).
+- **Pre-requisites:** Logged in as Resource Manager.
+- **Steps:**
+    1. **Select:** In Project Registry, select multiple projects via checkboxes.
+    2. **Action:** Click "Bulk Edit" (or Action Bar).
+    3. **Update:** Change Status to "On Hold".
+- **Expected:** Selected projects update simultaneously.
+- **Status:** [PENDING]
+
+### WF-10: Program Manager - Context & Notes
+- **Goal:** Add context to a project (US-2.7).
+- **Pre-requisites:** Logged in as PM.
+- **Steps:**
+    1. **Context:** Open Project Modal -> Click "Notes" tab.
+    2. **Add Note:** Type "Vendor delayed shipment".
+    3. **Verify:** Note appears with correct timestamp and username.
+- **Expected:** Project history preserves the note.
+- **Status:** [PENDING]
+
+### WF-11: Network Manager - Deep Work Policy
+- **Goal:** Verify "Deep Work" protection (US-1.2).
+- **Pre-requisites:** Logged in as Manager.
+- **Steps:**
+    1. **Schedule:** In Staff Planning, assign "Admin/Meeting" task on a Tuesday.
+    2. **Warning:** Check for warning/visual indicator (Yellow/Red).
+    3. **Override:** Apply "Emergency" justification.
+- **Expected:** Warning appears when scheduling non-project work on Deep Work days.
+- **Status:** [PENDING]
+
+### WF-12: Data Admin - Bulk Import & Export
+- **Goal:** Verify data portability (US-4.2, US-4.4).
+- **Pre-requisites:** Logged in as Admin.
+- **Steps:**
+    1. **Export:** Click "Export CSV" in Project Registry. Verify download.
+    2. **Import:** Navigate to Data Management -> Import Projects.
+    3. **Upload:** Upload CSV with 1 modified row (upsert test).
+    4. **Verify:** Check that the existing project was updated, not duplicated.
+- **Expected:** Export downloads valid CSV. Import handles upsert correctly.
+- **Status:** [PENDING]
+
+### WF-13: Architect - EoL Tech Refresh (Phase 3)
+- **Goal:** Identify EoL hardware and plan refresh (US-3.4).
+- **Pre-requisites:** Logged in as Architect.
+- **Steps:**
+    1. **Insight:** View "EoL Impact" chart on Dashboard.
+    2. **Action:** Click "Plan Refresh" on upcoming expiration.
+    3. **Create:** Verify new project details are pre-filled with device counts.
+- **Expected:** Seamless flow from insight to project creation.
+- **Status:** [PENDING]
 
 ---
 

@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
+import ProjectTasksTab from './ProjectTasksTab';
 
 const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8001' : '';
 
@@ -7,6 +9,7 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
     const [isSaving, setIsSaving] = useState(false);
     const [hasChanges, setHasChanges] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const { can } = useAuth();
 
     const formatDate = (dateStr) => {
         if (!dateStr) return 'Not set';
@@ -83,7 +86,7 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
     // Allocations state
     const [allocations, setAllocations] = useState([]);
     const [showAddResourceForm, setShowAddResourceForm] = useState(false);
-    const [newAllocation, setNewAllocation] = useState({ engineer_id: '', role: '', hours: 8 });
+    const [newAllocation, setNewAllocation] = useState({ engineer_id: '', role: '', category: 'Project Work', day: 'Mon', hours: 8 });
     const [editingHours, setEditingHours] = useState(null);
     const [deleteConfirm, setDeleteConfirm] = useState(null);
 
@@ -98,6 +101,19 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
     const [newDevice, setNewDevice] = useState({ device_type: '', current_qty: 0, proposed_qty: 0 });
     const [customDeviceType, setCustomDeviceType] = useState('');
 
+    // WBS Tasks state
+    const [tasks, setTasks] = useState([]);
+
+    // Project Members state (US-2.5)
+    const [projectMembers, setProjectMembers] = useState([]);
+    const [showAddMemberForm, setShowAddMemberForm] = useState(false);
+    const [newMember, setNewMember] = useState({ engineer_id: '', role: '' });
+
+    // Project Notes state (US-2.7)
+    const [notes, setNotes] = useState([]);
+    const [newNoteContent, setNewNoteContent] = useState('');
+    const [projects, setProjects] = useState([]); // Needed for refreshing project list after status update
+
     const devicePresets = [
         'Access Points',
         'Switches',
@@ -109,15 +125,19 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
         'Other (User Input)'
     ];
 
-    // Load RID log, allocations, and requirements from API on mount
     useEffect(() => {
         const fetchData = async () => {
+            const token = localStorage.getItem('token');
+            const headers = { 'Authorization': `Bearer ${token}` };
             try {
-                const [ridRes, allocRes, reqRes, devRes] = await Promise.all([
-                    fetch(`${API_BASE}/api/projects/${project.id}/rid-log`),
-                    fetch(`${API_BASE}/api/projects/${project.id}/allocations`),
-                    fetch(`${API_BASE}/api/projects/${project.id}/requirements`),
-                    fetch(`${API_BASE}/api/projects/${project.id}/devices`)
+                const [ridRes, allocRes, reqRes, devRes, tasksRes, memRes, notesRes] = await Promise.all([
+                    fetch(`${API_BASE}/api/projects/${project.id}/rid-log`, { headers }),
+                    fetch(`${API_BASE}/api/projects/${project.id}/allocations`, { headers }),
+                    fetch(`${API_BASE}/api/projects/${project.id}/requirements`, { headers }),
+                    fetch(`${API_BASE}/api/projects/${project.id}/devices`, { headers }),
+                    fetch(`${API_BASE}/api/projects/${project.id}/tasks`, { headers }),
+                    fetch(`${API_BASE}/api/projects/${project.id}/members`, { headers }),
+                    fetch(`${API_BASE}/api/projects/${project.id}/notes`, { headers })
                 ]);
 
                 if (ridRes.ok) {
@@ -145,7 +165,8 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
                             initials: eng?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '??',
                             role: a.category || 'Project Work',
                             hours: a.hours,
-                            status: 'Assigned'
+                            status: 'Assigned',
+                            policy_warnings: a.policy_warnings || []
                         };
                     }));
                 }
@@ -158,6 +179,21 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
                 if (devRes.ok) {
                     const devData = await devRes.json();
                     setDevices(devData);
+                }
+
+                if (tasksRes.ok) {
+                    const tasksData = await tasksRes.json();
+                    setTasks(tasksData);
+                }
+
+                if (memRes.ok) {
+                    const memData = await memRes.json();
+                    setProjectMembers(memData);
+                }
+
+                if (notesRes.ok) {
+                    const notesData = await notesRes.json();
+                    setNotes(notesData);
                 }
             } catch (error) {
                 console.error('Failed to load data:', error);
@@ -201,9 +237,13 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
             console.log('DEBUG: Patching project with payload:', payload);
 
             // Use PATCH for partial update (Epic 11)
+            const token = localStorage.getItem('token');
             const response = await fetch(`${API_BASE}/api/projects/${project.id}`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify(payload)
             });
             if (response.ok) {
@@ -229,9 +269,13 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
         setIsSaving(true);
         try {
             console.log(`DEBUG: Transitioning project ${project.id} to ${newStatus}`);
+            const token = localStorage.getItem('token');
             const response = await fetch(`${API_BASE}/api/projects/${project.id}`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({ workflow_status: newStatus })
             });
 
@@ -302,7 +346,7 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
                 {transitions.map((t, i) => (
                     <button
                         key={i}
-                        disabled={isSaving}
+                        disabled={isSaving || !can('edit_project_status')}
                         onClick={() => handleWorkflowTransition(t.next)}
                         style={{
                             ...buttonStyle,
@@ -358,7 +402,9 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
     const tabs = [
         { id: 'overview', label: 'Overview', icon: '📋' },
         { id: 'rid', label: 'Health & RID Log', icon: '⚠️' },
+        { id: 'tasks', label: 'Tasks', icon: '📝' },
         { id: 'schedule', label: 'Schedule & Allocations', icon: '📅' },
+        { id: 'notes', label: 'Notes', icon: '💬' },
     ];
 
     // RID Log functions - API integrated (US-11.6, US-11.7)
@@ -367,9 +413,13 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
 
         console.log('DEBUG: Attempting to add RID entry:', newRidEntry);
         try {
+            const token = localStorage.getItem('token');
             const response = await fetch(`${API_BASE}/api/projects/${project.id}/rid-log`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify(newRidEntry)
             });
 
@@ -399,9 +449,13 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
 
     const handlePromoteRid = async (id, toType) => {
         try {
+            const token = localStorage.getItem('token');
             const response = await fetch(`${API_BASE}/api/rid-log/${id}`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({ type: toType })
             });
 
@@ -421,8 +475,10 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
 
     const handleDeleteRid = async (id) => {
         try {
+            const token = localStorage.getItem('token');
             const response = await fetch(`${API_BASE}/api/rid-log/${id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
             });
 
             if (response.ok) {
@@ -446,13 +502,19 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
             const payload = {
                 engineer_id: newAllocation.engineer_id,
                 role: newAllocation.role,
+                category: newAllocation.category,
+                day: newAllocation.day,
                 hours_per_week: parseInt(newAllocation.hours) || 8
             };
             console.log('DEBUG: Sending allocation payload:', payload);
 
+            const token = localStorage.getItem('token');
             const response = await fetch(`${API_BASE}/api/projects/${project.id}/allocations`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify(payload)
             });
 
@@ -467,9 +529,10 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
                     initials: eng?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '??',
                     role: newAllocation.role,
                     hours: savedAlloc.hours,
-                    status: 'Assigned'
+                    status: 'Assigned',
+                    policy_warnings: savedAlloc.policy_warnings || []
                 }]);
-                setNewAllocation({ engineer_id: '', role: '', hours: 8 });
+                setNewAllocation({ engineer_id: '', role: '', category: 'Project Work', day: 'Mon', hours: 8 });
                 setShowAddResourceForm(false);
                 setHasChanges(true);
                 if (onProjectUpdate) onProjectUpdate();
@@ -485,8 +548,10 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
 
     const handleRemoveAllocation = async (id) => {
         try {
+            const token = localStorage.getItem('token');
             const response = await fetch(`${API_BASE}/api/allocations/${id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
             });
 
             if (response.ok) {
@@ -504,9 +569,13 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
         const hours = Math.min(40, Math.max(2, Math.round(parseInt(newHours) / 2) * 2));
 
         try {
+            const token = localStorage.getItem('token');
             const response = await fetch(`${API_BASE}/api/allocations/${id}`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({ hours_per_week: hours })
             });
 
@@ -521,6 +590,103 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
         setEditingHours(null);
     };
 
+
+    // Project Member Functions (US-2.5)
+    const handleAddMember = async () => {
+        if (!newMember.engineer_id || !newMember.role) return;
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE}/api/projects/${project.id}/members`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(newMember)
+            });
+
+            if (response.ok) {
+                const savedMember = await response.json();
+                // Manually attach engineer object for UI since API response might generally include it based on connection but explicit attachment here ensures immediate UI update compatibility if schema differs slightly on post (but schema has engineer field). 
+                // Actually fetching the engineer details from our 'engineers' prop to populate the UI view immediately is safer than re-fetching.
+                const fullMember = {
+                    ...savedMember,
+                    engineer: engineers.find(e => e.id === savedMember.engineer_id)
+                };
+                setProjectMembers([...projectMembers, fullMember]);
+                setNewMember({ engineer_id: '', role: '' });
+                setShowAddMemberForm(false);
+            } else {
+                const errorText = await response.text();
+                alert(`Failed to add member: ${errorText}`);
+            }
+        } catch (error) {
+            console.error('Failed to add member:', error);
+        }
+    };
+
+    const handleRemoveMember = async (memberId) => {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_BASE}/api/projects/${project.id}/members/${memberId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                setProjectMembers(projectMembers.filter(m => m.id !== memberId));
+            } else {
+                alert("Failed to remove member");
+            }
+        } catch (error) {
+            console.error("Error removing member:", error);
+        }
+    };
+
+    // Notes Handlers (US-2.7)
+    const handleAddNote = async (e) => {
+        e.preventDefault();
+        if (!newNoteContent.trim()) return;
+
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_BASE}/api/projects/${project.id}/notes`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }, // Hardcoded user for now until auth context is fully passed
+                body: JSON.stringify({ content: newNoteContent, created_by: 'Current User' })
+            });
+            if (res.ok) {
+                const newNote = await res.json();
+                setNotes([newNote, ...notes]);
+                setNewNoteContent('');
+            } else {
+                alert("Failed to add note");
+            }
+        } catch (error) {
+            console.error("Error adding note:", error);
+        }
+    };
+
+    const handleDeleteNote = async (noteId) => {
+        if (!window.confirm("Are you sure you want to delete this note?")) return;
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_BASE}/api/projects/${project.id}/notes/${noteId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                setNotes(notes.filter(n => n.id !== noteId));
+            } else {
+                alert("Failed to delete note");
+            }
+        } catch (error) {
+            console.error("Error deleting note:", error);
+        }
+    };
 
     return (
         <div style={{
@@ -570,6 +736,26 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
                         <p style={{ margin: 0, fontSize: '0.875rem', color: '#64748B' }}>
                             ID: {project.id?.substring(0, 8)}... • Created: {formatDate(project.created_at || Date.now())}
                         </p>
+
+                        {/* WBS Progress Bar (Senior PM Review Item) */}
+                        {tasks.length > 0 && (
+                            <div style={{ marginTop: '0.75rem', width: '200px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', fontWeight: 700, color: '#64748B', marginBottom: '0.25rem', textTransform: 'uppercase' }}>
+                                    <span>Task Completion</span>
+                                    <span>{tasks.filter(t => t.status === 'done').length} / {tasks.length}</span>
+                                </div>
+                                <div style={{ height: '6px', background: '#E2E8F0', borderRadius: '3px', overflow: 'hidden' }}>
+                                    <div style={{
+                                        width: `${Math.round((tasks.filter(t => t.status === 'done').length / tasks.length) * 100)}%`,
+                                        height: '100%',
+                                        background: '#10B981',
+                                        borderRadius: '3px',
+                                        transition: 'width 0.4s ease-out'
+                                    }}></div>
+                                </div>
+                            </div>
+                        )}
+
                         {renderWorkflowButtons()}
                     </div>
                     <button
@@ -625,6 +811,12 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
 
                 {/* Content */}
                 <div style={{ flex: 1, overflow: 'auto', padding: '1.5rem 2rem' }}>
+                    {activeTab === 'tasks' && (
+                        <ProjectTasksTab
+                            projectId={project.id}
+                            onTasksUpdate={(updatedTasks) => setTasks(updatedTasks)}
+                        />
+                    )}
                     {activeTab === 'overview' && (
                         <div>
                             {/* Status Cards */}
@@ -653,6 +845,7 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
                                             max="100"
                                             value={editableProject.percent_complete}
                                             onChange={(e) => handleFieldChange('percent_complete', Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
+                                            disabled={!can('edit_project_registry')}
                                             style={{
                                                 width: '60px',
                                                 fontSize: '1.25rem',
@@ -677,6 +870,7 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
                                     <select
                                         value={editableProject.priority}
                                         onChange={(e) => handleFieldChange('priority', e.target.value)}
+                                        disabled={!can('edit_project_registry')}
                                         style={{
                                             width: '100%',
                                             fontSize: '0.9375rem',
@@ -694,6 +888,91 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
                                         <option value="P3-Standard">P3 - Standard</option>
                                         <option value="P4-Low">P4 - Low</option>
                                     </select>
+                                </div>
+                            </div>
+
+                            {/* WBS Summary (Visual Dashboard) */}
+                            <div style={{ marginBottom: '2rem' }}>
+                                <h4 style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#0F172A', marginBottom: '1rem' }}>WBS Summary</h4>
+                                <div style={{
+                                    background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)',
+                                    borderRadius: '16px',
+                                    padding: '1.5rem',
+                                    color: 'white',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '2rem',
+                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                                }}>
+                                    {/* Progress Ring */}
+                                    <div style={{ position: 'relative', width: '100px', height: '100px' }}>
+                                        <svg width="100" height="100" viewBox="0 0 100 100">
+                                            <circle cx="50" cy="50" r="40" fill="none" stroke="#334155" strokeWidth="8" />
+                                            <circle
+                                                cx="50" cy="50" r="40"
+                                                fill="none"
+                                                stroke="#3B82F6"
+                                                strokeWidth="8"
+                                                strokeDasharray={`${2 * Math.PI * 40}`}
+                                                strokeDashoffset={`${2 * Math.PI * 40 * (1 - (tasks.length > 0 ? tasks.filter(t => t.status === 'done').length / tasks.length : 0))}`}
+                                                transform="rotate(-90 50 50)"
+                                                style={{ transition: 'stroke-dashoffset 0.5s ease-out' }}
+                                            />
+                                        </svg>
+                                        <div style={{
+                                            position: 'absolute', inset: 0,
+                                            display: 'flex', flexDirection: 'column',
+                                            alignItems: 'center', justifyContent: 'center'
+                                        }}>
+                                            <span style={{ fontSize: '1.5rem', fontWeight: 700 }}>
+                                                {tasks.length > 0 ? Math.round((tasks.filter(t => t.status === 'done').length / tasks.length) * 100) : 0}%
+                                            </span>
+                                            <span style={{ fontSize: '0.625rem', textTransform: 'uppercase', opacity: 0.7 }}>Complete</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Task Stats */}
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1rem' }}>
+                                            <div style={{ background: 'rgba(255,255,255,0.1)', padding: '0.75rem', borderRadius: '8px' }}>
+                                                <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>{tasks.filter(t => t.status === 'todo').length}</div>
+                                                <div style={{ fontSize: '0.625rem', textTransform: 'uppercase', opacity: 0.7 }}>To Do</div>
+                                            </div>
+                                            <div style={{ background: 'rgba(255,255,255,0.1)', padding: '0.75rem', borderRadius: '8px' }}>
+                                                <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>{tasks.filter(t => t.status === 'in_progress').length}</div>
+                                                <div style={{ fontSize: '0.625rem', textTransform: 'uppercase', opacity: 0.7 }}>In Progress</div>
+                                            </div>
+                                            <div style={{ background: 'rgba(255,255,255,0.1)', padding: '0.75rem', borderRadius: '8px' }}>
+                                                <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>{tasks.filter(t => t.status === 'blocked').length}</div>
+                                                <div style={{ fontSize: '0.625rem', textTransform: 'uppercase', opacity: 0.7 }}>Blocked</div>
+                                            </div>
+                                        </div>
+
+
+                                    </div>
+
+                                    {/* Vertical Divider */}
+                                    <div style={{ width: '1px', height: '80px', background: 'rgba(255,255,255,0.2)' }}></div>
+
+                                    {/* Critical Tasks */}
+                                    <div style={{ width: '250px' }}>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.5rem', opacity: 0.8 }}>Critical Tasks</div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                            {tasks
+                                                .filter(t => t.status !== 'done')
+                                                .sort((a, b) => (b.priority || 0) - (a.priority || 0))
+                                                .slice(0, 3)
+                                                .map(task => (
+                                                    <div key={task.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem' }}>
+                                                        <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: task.status === 'blocked' ? '#EF4444' : '#F59E0B' }}></div>
+                                                        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px' }}>{task.title}</span>
+                                                    </div>
+                                                ))}
+                                            {tasks.filter(t => t.status !== 'done').length === 0 && (
+                                                <div style={{ fontSize: '0.8125rem', opacity: 0.5, fontStyle: 'italic' }}>No active tasks</div>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -795,6 +1074,71 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+
+                            {/* Project Team Section (US-2.5) */}
+                            <div style={{ marginBottom: '2rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                    <h4 style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#0F172A', margin: 0 }}>Project Team</h4>
+                                    <button
+                                        onClick={() => setShowAddMemberForm(true)}
+                                        disabled={!can('edit_project_registry')}
+                                        style={{
+                                            background: '#F1F5F9',
+                                            color: '#475569',
+                                            border: 'none',
+                                            borderRadius: '6px',
+                                            padding: '0.375rem 0.75rem',
+                                            fontSize: '0.75rem',
+                                            fontWeight: 600,
+                                            cursor: 'pointer'
+                                        }}
+                                    >+ Add Member</button>
+                                </div>
+
+                                {showAddMemberForm && (
+                                    <div style={{ background: '#F8FAFC', borderRadius: '8px', padding: '1rem', marginBottom: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                                        <select
+                                            value={newMember.engineer_id}
+                                            onChange={(e) => setNewMember({ ...newMember, engineer_id: e.target.value })}
+                                            style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.875rem' }}
+                                        >
+                                            <option value="">Select Engineer...</option>
+                                            {engineers.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                                        </select>
+                                        <input
+                                            type="text"
+                                            placeholder="Role (e.g. Tech Lead)"
+                                            value={newMember.role}
+                                            onChange={(e) => setNewMember({ ...newMember, role: e.target.value })}
+                                            style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.875rem' }}
+                                        />
+                                        <button onClick={handleAddMember} style={{ background: '#2563EB', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}>Save</button>
+                                        <button onClick={() => setShowAddMemberForm(false)} style={{ background: 'transparent', color: '#64748B', border: 'none', cursor: 'pointer', fontSize: '1.25rem' }}>&times;</button>
+                                    </div>
+                                )}
+
+                                {projectMembers.length === 0 ? (
+                                    <div style={{ fontSize: '0.875rem', color: '#94A3B8', fontStyle: 'italic' }}>No additional team members assigned.</div>
+                                ) : (
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
+                                        {projectMembers.map(member => (
+                                            <div key={member.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'white', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '0.75rem' }}>
+                                                <div>
+                                                    <div style={{ fontWeight: 600, color: '#0F172A', fontSize: '0.875rem' }}>{member.engineer?.name || 'Unknown'}</div>
+                                                    <div style={{ fontSize: '0.75rem', color: '#64748B' }}>{member.role}</div>
+                                                </div>
+                                                {can('edit_project_registry') && (
+                                                    <button
+                                                        onClick={() => handleRemoveMember(member.id)}
+                                                        style={{ color: '#EF4444', background: 'transparent', border: 'none', cursor: 'pointer', opacity: 0.6 }}
+                                                        title="Remove"
+                                                    >&times;</button>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Project Status Update - Epic 11 Enhancement */}
@@ -960,9 +1304,13 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
                                                     if (!deviceTypeToSave) return;
 
                                                     try {
+                                                        const token = localStorage.getItem('token');
                                                         const res = await fetch(`${API_BASE}/api/projects/${project.id}/devices`, {
                                                             method: 'POST',
-                                                            headers: { 'Content-Type': 'application/json' },
+                                                            headers: {
+                                                                'Content-Type': 'application/json',
+                                                                'Authorization': `Bearer ${token}`
+                                                            },
                                                             body: JSON.stringify({ ...newDevice, device_type: deviceTypeToSave })
                                                         });
                                                         if (res.ok) {
@@ -1017,7 +1365,11 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
                                                                 <button
                                                                     onClick={async () => {
                                                                         try {
-                                                                            await fetch(`${API_BASE}/api/devices/${dev.id}`, { method: 'DELETE' });
+                                                                            const token = localStorage.getItem('token');
+                                                                            await fetch(`${API_BASE}/api/devices/${dev.id}`, {
+                                                                                method: 'DELETE',
+                                                                                headers: { 'Authorization': `Bearer ${token}` }
+                                                                            });
                                                                             setDevices(devices.filter(d => d.id !== dev.id));
                                                                         } catch (error) {
                                                                             console.error('Failed to delete device:', error);
@@ -1102,9 +1454,13 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
                                                 onClick={async () => {
                                                     if (!newRequirement.role || !newRequirement.hours_per_week) return;
                                                     try {
+                                                        const token = localStorage.getItem('token');
                                                         const res = await fetch(`${API_BASE}/api/projects/${project.id}/requirements`, {
                                                             method: 'POST',
-                                                            headers: { 'Content-Type': 'application/json' },
+                                                            headers: {
+                                                                'Content-Type': 'application/json',
+                                                                'Authorization': `Bearer ${token}`
+                                                            },
                                                             body: JSON.stringify({
                                                                 role: newRequirement.role,
                                                                 hours_per_week: newRequirement.hours_per_week,
@@ -1150,7 +1506,11 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
                                                     <button
                                                         onClick={async () => {
                                                             try {
-                                                                const res = await fetch(`${API_BASE}/api/requirements/${req.id}`, { method: 'DELETE' });
+                                                                const token = localStorage.getItem('token');
+                                                                const res = await fetch(`${API_BASE}/api/requirements/${req.id}`, {
+                                                                    method: 'DELETE',
+                                                                    headers: { 'Authorization': `Bearer ${token}` }
+                                                                });
                                                                 if (res.ok) {
                                                                     setRequirements(requirements.filter(r => r.id !== req.id));
                                                                 }
@@ -1310,6 +1670,7 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
                                 <h4 style={{ margin: 0, fontSize: '0.9375rem', fontWeight: 600, color: '#0F172A' }}>Risk, Issue & Decision Log</h4>
                                 <button
                                     onClick={() => setShowAddRidForm(true)}
+                                    disabled={!can('edit_project_registry')}
                                     style={{
                                         background: '#2563EB',
                                         color: 'white',
@@ -1495,6 +1856,7 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
                                 <h4 style={{ margin: 0, fontSize: '0.9375rem', fontWeight: 600, color: '#0F172A' }}>Resource Allocations</h4>
                                 <button
                                     onClick={() => setShowAddResourceForm(true)}
+                                    disabled={!can('allocate_resources')}
                                     style={{
                                         background: '#2563EB',
                                         color: 'white',
@@ -1529,13 +1891,13 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
                             {/* Add Resource Form - US-11.8 */}
                             {showAddResourceForm && (
                                 <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '1.25rem', marginBottom: '1rem' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 100px', gap: '1rem', marginBottom: '1rem' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 1fr 1fr 0.8fr', gap: '0.75rem', marginBottom: '1rem' }}>
                                         <div>
                                             <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '0.25rem' }}>Engineer</label>
                                             <select
                                                 value={newAllocation.engineer_id}
                                                 onChange={(e) => setNewAllocation({ ...newAllocation, engineer_id: e.target.value })}
-                                                style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0' }}
+                                                style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.875rem' }}
                                             >
                                                 <option value="">Select Engineer...</option>
                                                 {engineers.map(eng => (
@@ -1552,11 +1914,35 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
                                                 value={newAllocation.role}
                                                 onChange={(e) => setNewAllocation({ ...newAllocation, role: e.target.value })}
                                                 placeholder="e.g. Network Engineer"
-                                                style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0' }}
+                                                style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.875rem' }}
                                             />
                                         </div>
                                         <div>
-                                            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '0.25rem' }}>Hours/Wk</label>
+                                            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '0.25rem' }}>Category</label>
+                                            <select
+                                                value={newAllocation.category}
+                                                onChange={(e) => setNewAllocation({ ...newAllocation, category: e.target.value })}
+                                                style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.875rem' }}
+                                            >
+                                                <option value="Project Work">Project Work</option>
+                                                <option value="Operational Support">Operational Support</option>
+                                                <option value="Meetings">Meetings</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '0.25rem' }}>Day</label>
+                                            <select
+                                                value={newAllocation.day}
+                                                onChange={(e) => setNewAllocation({ ...newAllocation, day: e.target.value })}
+                                                style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.875rem' }}
+                                            >
+                                                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map(day => (
+                                                    <option key={day} value={day}>{day}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '0.25rem' }}>Hrs/Wk</label>
                                             <input
                                                 type="number"
                                                 min="2"
@@ -1564,7 +1950,7 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
                                                 step="2"
                                                 value={newAllocation.hours}
                                                 onChange={(e) => setNewAllocation({ ...newAllocation, hours: e.target.value })}
-                                                style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0' }}
+                                                style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.875rem' }}
                                             />
                                         </div>
                                     </div>
@@ -1643,6 +2029,14 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
                                                         fontSize: '0.75rem',
                                                         fontWeight: 600
                                                     }}>{alloc.status}</span>
+                                                    {alloc.policy_warnings && alloc.policy_warnings.length > 0 && (
+                                                        <span
+                                                            title={alloc.policy_warnings.join('\n')}
+                                                            style={{ marginLeft: '0.5rem', cursor: 'help', fontSize: '1rem' }}
+                                                        >
+                                                            ⚠️
+                                                        </span>
+                                                    )}
                                                 </td>
                                                 <td style={{ padding: '0.875rem 0.5rem', textAlign: 'center' }}>
                                                     {deleteConfirm === alloc.id ? (
@@ -1662,6 +2056,97 @@ const ProjectDetailModal = ({ project, onClose, engineers = [], onProjectUpdate 
                                         ))}
                                     </tbody>
                                 </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'notes' && (
+                        <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                <h4 style={{ margin: 0, fontSize: '0.9375rem', fontWeight: 600, color: '#0F172A' }}>Project Notes</h4>
+                                <span style={{ fontSize: '0.75rem', color: '#64748B' }}>{notes.length} note{notes.length !== 1 ? 's' : ''}</span>
+                            </div>
+
+                            {/* Add Note Form */}
+                            <div style={{ marginBottom: '2rem' }}>
+                                <form onSubmit={handleAddNote}>
+                                    <textarea
+                                        value={newNoteContent}
+                                        onChange={(e) => setNewNoteContent(e.target.value)}
+                                        placeholder="Add a note about this project..."
+                                        style={{
+                                            width: '100%',
+                                            minHeight: '80px',
+                                            padding: '0.75rem',
+                                            border: '1px solid #E2E8F0',
+                                            borderRadius: '8px',
+                                            fontSize: '0.875rem',
+                                            marginBottom: '0.75rem',
+                                            fontFamily: 'inherit',
+                                            resize: 'vertical'
+                                        }}
+                                    />
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                        <button
+                                            type="submit"
+                                            disabled={!newNoteContent.trim()}
+                                            style={{
+                                                background: newNoteContent.trim() ? '#2563EB' : '#94A3B8',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '6px',
+                                                padding: '0.5rem 1rem',
+                                                fontSize: '0.875rem',
+                                                fontWeight: 600,
+                                                cursor: newNoteContent.trim() ? 'pointer' : 'not-allowed'
+                                            }}
+                                        >Add Note</button>
+                                    </div>
+                                </form>
+                            </div>
+
+                            {/* Notes List */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                {notes.length === 0 ? (
+                                    <div style={{ textAlign: 'center', padding: '2rem', color: '#94A3B8', fontStyle: 'italic', background: '#F8FAFC', borderRadius: '8px' }}>
+                                        No notes yet. Start the discussion!
+                                    </div>
+                                ) : (
+                                    notes.map(note => (
+                                        <div key={note.id} style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '1rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <div style={{
+                                                        width: '24px',
+                                                        height: '24px',
+                                                        borderRadius: '50%',
+                                                        background: '#E2E8F0',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        fontSize: '0.75rem',
+                                                        fontWeight: 600,
+                                                        color: '#64748B'
+                                                    }}>
+                                                        {(note.created_by || 'Unknown').charAt(0)}
+                                                    </div>
+                                                    <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#0F172A' }}>{note.created_by || 'Unknown'}</span>
+                                                    <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>• {new Date(note.created_at).toLocaleString()}</span>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleDeleteNote(note.id)}
+                                                    style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', fontSize: '1.25rem', padding: '0 0.5rem', opacity: 0.5 }}
+                                                    title="Delete note"
+                                                    onMouseOver={(e) => e.target.style.opacity = 1}
+                                                    onMouseOut={(e) => e.target.style.opacity = 0.5}
+                                                >×</button>
+                                            </div>
+                                            <div style={{ fontSize: '0.9375rem', color: '#334155', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                                                {note.content}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         </div>
                     )}

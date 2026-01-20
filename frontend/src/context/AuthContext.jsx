@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext(null);
 
-const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8001' : '';
+const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://localhost:8001' : '';
 
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);

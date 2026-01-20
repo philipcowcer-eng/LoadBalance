@@ -46,7 +46,7 @@ security = HTTPBearer(auto_error=False)
 class UserCreate(BaseModel):
     username: str
     password: str
-    role: str = "engineer"
+    role: str = "viewer"  # AC-4.1.3: Default role for new registrations
 
 class UserLogin(BaseModel):
     username: str
@@ -139,6 +139,22 @@ def require_role(*allowed_roles: str):
         return current_user
     return role_checker
 
+from permissions import get_role_permissions
+
+def require_permission(permission: str):
+    """
+    Dependency factory to require specific permission (US-2.2).
+    """
+    def permission_checker(current_user: User = Depends(get_current_user)):
+        if current_user is None:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
+        perms = get_role_permissions(current_user.role)
+        if permission not in perms:
+            raise HTTPException(status_code=403, detail=f"Permission denied: {permission}")
+        return current_user
+    return permission_checker
+
 # =============================================================================
 # Auth Router
 # =============================================================================
@@ -168,13 +184,14 @@ def register(user_data: UserCreate, request: Request, db: Session = Depends(get_
         if user_count == 0:
             role = "admin"
         else:
-            role = user_data.role
+            # AC-4.1.3: Default role for new registrations is 'viewer'
+            role = user_data.role or "viewer"
             # Prevent registering as admin if not first user
             if role == "admin":
                 raise HTTPException(status_code=403, detail="Admin role cannot be selected during registration.")
         
         # Validate role
-        valid_roles = ["admin", "resource_manager", "project_manager", "engineer"]
+        valid_roles = ["admin", "resource_manager", "project_manager", "engineer", "viewer"]
         if role not in valid_roles:
             raise HTTPException(status_code=400, detail=f"Invalid role. Must be one of: {', '.join(valid_roles)}")
         

@@ -9,24 +9,47 @@ const AddEngineerModal = ({ onClose, onSave }) => {
         total_capacity: 40,
         ktlo_tax: 0,
         specialization: 'Routing & Switching',
-        role: ''
+        ktlo_tax: 0,
+        specialization: 'Routing & Switching',
+        role: '',
+        skills: ''
     });
+
+    const ROLE_DEFAULTS = {
+        "Network Engineer": 20,
+        "Wireless Engineer": 20,
+        "Project Manager": 50,
+        "Architect": 10
+    };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData({ ...formData, [name]: value });
+        let newData = { ...formData, [name]: value };
+
+        // Auto-fill KTLO Tax based on Role (US-2.1)
+        if (name === 'role') {
+            newData.ktlo_tax = ROLE_DEFAULTS[value] || 0;
+        }
+
+        setFormData(newData);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            const token = localStorage.getItem('token');
             const res = await fetch(`${API_BASE}/api/engineers`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     ...formData,
+                    ...formData,
                     total_capacity: parseInt(formData.total_capacity),
-                    ktlo_tax: parseInt(formData.ktlo_tax)
+                    ktlo_tax: parseInt(formData.ktlo_tax),
+                    skills: formData.skills ? formData.skills.split(',').map(s => s.trim()).filter(s => s) : []
                 })
             });
             if (res.ok) {
@@ -75,6 +98,10 @@ const AddEngineerModal = ({ onClose, onSave }) => {
                                 <option value="NOC Operations">NOC Operations</option>
                             </select>
                         </div>
+                        <div className="form-group">
+                            <label className="form-label">Skills (comma separated)</label>
+                            <input name="skills" className="form-input" placeholder="e.g. BGP, Python, AWS" value={formData.skills} onChange={handleChange} />
+                        </div>
                         <div className="form-group-row">
                             <div className="form-group">
                                 <label className="form-label">Total Cap (hrs)</label>
@@ -91,8 +118,8 @@ const AddEngineerModal = ({ onClose, onSave }) => {
                         <button type="submit" className="btn btn-primary">Save Engineer</button>
                     </div>
                 </form>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };
 

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query, Request, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List, Optional
@@ -44,9 +44,15 @@ def get_audit_logs(
     if current_user.role not in ["admin", "resource_manager"]:
         return []
         
-    query = db.query(models.AuditLog)
-    
-    if resource_type:
-        query = query.filter(models.AuditLog.resource_type == resource_type)
+    try:
+        query = db.query(models.AuditLog)
         
-    return query.order_by(models.AuditLog.timestamp.desc()).limit(limit).offset(offset).all()
+        if resource_type:
+            query = query.filter(models.AuditLog.resource_type == resource_type)
+            
+        return query.order_by(models.AuditLog.timestamp.desc()).limit(limit).offset(offset).all()
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        # Return empty list or raise detailed error for debugging
+        raise HTTPException(status_code=400, detail=f"Audit log query failed: {str(e)}")

@@ -1,11 +1,12 @@
-from pydantic import BaseModel, ConfigDict, computed_field, Field
+from pydantic import BaseModel, ConfigDict, computed_field, Field, field_validator
+import json
 from uuid import UUID
 from datetime import datetime, date
 from typing import Optional, List
 from models import (
     RoleEnum, PriorityEnum, ProjectStatusEnum, CategoryEnum, DayEnum, 
     FeedbackStatusEnum, RagStatusEnum, WorkflowStatusEnum, RidTypeEnum, 
-    RidSeverityEnum, RidStatusEnum, AllocationStatusEnum
+    RidSeverityEnum, RidStatusEnum, AllocationStatusEnum, TaskStatusEnum
 )
 
 # Base Schemas
@@ -14,6 +15,7 @@ class EngineerBase(BaseModel):
     role: RoleEnum
     total_capacity: int = 40
     ktlo_tax: int = 0
+    skills: List[str] = []
 
 class ProjectBase(BaseModel):
     name: str
@@ -30,7 +32,7 @@ class AllocationBase(BaseModel):
 
 # Create Schemas
 class EngineerCreate(EngineerBase):
-    pass
+    ktlo_tax: Optional[int] = None
 
 class ProjectCreate(ProjectBase):
     # Optional Epic 11 fields for creation
@@ -83,6 +85,13 @@ class ProjectUpdate(BaseModel):
     device_count: Optional[int] = None
     device_type: Optional[str] = None
 
+class ProjectBulkUpdate(BaseModel):
+    ids: List[UUID]
+    workflow_status: Optional[str] = None
+    priority: Optional[str] = None
+    fiscal_year: Optional[str] = None
+    rag_status: Optional[str] = None
+
 # RID Log Schemas (US-11.6, US-11.7)
 class RidLogCreate(BaseModel):
     """Schema for creating RID log entries (US-11.7)"""
@@ -117,6 +126,8 @@ class ProjectAllocationCreate(BaseModel):
     """Schema for adding allocation from project modal (US-11.8)"""
     engineer_id: UUID
     role: Optional[str] = None
+    category: Optional[CategoryEnum] = CategoryEnum.PROJECT_WORK
+    day: Optional[DayEnum] = DayEnum.MON
     hours_per_week: int = Field(..., ge=2, le=40)
     start_week: Optional[date] = None
     end_week: Optional[date] = None
@@ -134,6 +145,16 @@ class Engineer(EngineerBase):
     @property
     def effective_capacity(self) -> int:
         return self.total_capacity - self.ktlo_tax
+
+    @field_validator('skills', mode='before')
+    @classmethod
+    def parse_skills(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except:
+                return []
+        return v
 
 # Epic 13 fields
     fiscal_year: Optional[str] = None
@@ -183,6 +204,7 @@ class Project(ProjectBase):
 class Allocation(AllocationBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID
+    policy_warnings: List[str] = []
 
 class ImpactLog(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -242,4 +264,49 @@ class ProjectDevice(BaseModel):
     @property
     def net_change(self) -> int:
         return self.proposed_qty - self.current_qty
+
+# Project Task Schemas (US-2.4)
+class TaskBase(BaseModel):
+    title: str = Field(..., min_length=1, max_length=255)
+    description: Optional[str] = None
+    status: TaskStatusEnum = TaskStatusEnum.TODO
+    priority: int = 0
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    dependency_id: Optional[UUID] = None
+    assignee_id: Optional[UUID] = None
+
+class TaskCreate(TaskBase):
+    pass
+
+class TaskUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=1, max_length=255)
+    description: Optional[str] = None
+    status: Optional[TaskStatusEnum] = None
+    priority: Optional[int] = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    dependency_id: Optional[UUID] = None
+    assignee_id: Optional[UUID] = None
+
+class TaskResponse(TaskBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    project_id: UUID
+    created_at: datetime
+
+
+# Project Member Schemas (US-2.5)
+class ProjectMemberCreate(BaseModel):
+    engineer_id: UUID
+    role: str = Field(..., min_length=1, max_length=100)
+
+class ProjectMember(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    project_id: UUID
+    engineer_id: UUID
+    role: str
+    created_at: datetime
+    engineer: Engineer # Include full engineer details for UI convenience
 

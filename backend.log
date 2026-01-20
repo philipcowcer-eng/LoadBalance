@@ -1,0 +1,59 @@
+/Users/philipcowcer/project1/gemini/resource_manager/.venv/lib/python3.14/site-packages/pydantic/_internal/_config.py:383: UserWarning: Valid config keys have changed in V2:
+* 'orm_mode' has been renamed to 'from_attributes'
+  warnings.warn(message, UserWarning)
+INFO:     Started server process [50937]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+STARTUP: 6 user(s) already exist. Skipping admin bootstrap.
+DEBUG: Recording Audit: EXPORT on Engineer (ID: None)
+INFO:     127.0.0.1:54580 - "GET /api/export/engineers HTTP/1.1" 200 OK
+DEBUG: Recording Audit: EXPORT on Project (ID: None)
+INFO:     127.0.0.1:54582 - "GET /api/export/projects HTTP/1.1" 200 OK
+DEBUG: Recording Audit: REGISTER on User (ID: 4414de16-f5f2-41c0-bfcc-a631a9a890cc)
+INFO:     127.0.0.1:54596 - "POST /api/auth/register HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55352 - "OPTIONS /api/auth/login HTTP/1.1" 200 OK
+DEBUG: Recording Audit: LOGIN on User (ID: f2a87b1a-b5e2-423d-8435-4ceb227df0f4)
+INFO:     127.0.0.1:55352 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55352 - "GET /api/engineers HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55356 - "GET /api/devices HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55355 - "GET /api/requirements HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55354 - "GET /api/allocations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55353 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55352 - "GET /api/engineers HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55355 - "GET /api/requirements HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55354 - "GET /api/allocations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55356 - "GET /api/devices HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55353 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55352 - "GET /api/projects/64453547-7e84-44c5-8e05-eb710d43376a/allocations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55353 - "GET /api/projects/64453547-7e84-44c5-8e05-eb710d43376a/rid-log HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55355 - "GET /api/projects/64453547-7e84-44c5-8e05-eb710d43376a/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55378 - "OPTIONS /api/scenarios/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55378 - "GET /api/scenarios/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55378 - "GET /api/scenarios/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55378 - "GET /api/scenarios/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55378 - "GET /api/scenarios/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55430 - "GET /api/projects/9fc6bf1c-2777-4680-ba71-8240f65b2772/rid-log HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55431 - "GET /api/projects/9fc6bf1c-2777-4680-ba71-8240f65b2772/allocations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55432 - "GET /api/projects/9fc6bf1c-2777-4680-ba71-8240f65b2772/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55430 - "GET /api/projects/3ead811e-c928-4b25-a591-c34734acc115/rid-log HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55432 - "GET /api/projects/3ead811e-c928-4b25-a591-c34734acc115/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55431 - "GET /api/projects/3ead811e-c928-4b25-a591-c34734acc115/allocations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55480 - "GET /api/projects/3ead811e-c928-4b25-a591-c34734acc115/members HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55480 - "GET /api/projects/3ead811e-c928-4b25-a591-c34734acc115/members HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55475 - "GET /api/projects/3ead811e-c928-4b25-a591-c34734acc115/rid-log HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55477 - "GET /api/projects/3ead811e-c928-4b25-a591-c34734acc115/devices HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55476 - "GET /api/projects/3ead811e-c928-4b25-a591-c34734acc115/notes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55479 - "GET /api/projects/3ead811e-c928-4b25-a591-c34734acc115/allocations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55478 - "GET /api/projects/3ead811e-c928-4b25-a591-c34734acc115/requirements HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55481 - "GET /api/projects/3ead811e-c928-4b25-a591-c34734acc115/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55480 - "GET /api/projects/3ead811e-c928-4b25-a591-c34734acc115/rid-log HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55475 - "GET /api/projects/3ead811e-c928-4b25-a591-c34734acc115/devices HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55477 - "GET /api/projects/3ead811e-c928-4b25-a591-c34734acc115/notes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55479 - "GET /api/projects/3ead811e-c928-4b25-a591-c34734acc115/requirements HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55476 - "GET /api/projects/3ead811e-c928-4b25-a591-c34734acc115/allocations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55478 - "GET /api/projects/3ead811e-c928-4b25-a591-c34734acc115/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55481 - "GET /api/engineers HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55480 - "GET /api/projects/3ead811e-c928-4b25-a591-c34734acc115/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55480 - "GET /api/projects/3ead811e-c928-4b25-a591-c34734acc115/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55481 - "GET /api/engineers HTTP/1.1" 200 OK

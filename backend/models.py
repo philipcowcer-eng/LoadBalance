@@ -1,8 +1,10 @@
-from sqlalchemy import Column, Integer, String, Enum, UUID, ForeignKey, DateTime, Float, Date, Text
-from sqlalchemy.orm import declarative_base, relationship
+import enum
+from sqlalchemy import (
+    Column, Integer, String, Enum, ForeignKey, DateTime, Float, Date, Text
+)
+from sqlalchemy.orm import declarative_base, relationship, backref
 import uuid
 from datetime import datetime, date
-import enum
 
 Base = declarative_base()
 
@@ -11,6 +13,13 @@ class RoleEnum(str, enum.Enum):
     WIRELESS_ENGINEER = "Wireless Engineer"
     PROJECT_MANAGER = "Project Manager"
     ARCHITECT = "Architect"
+
+ROLE_DEFAULTS = {
+    RoleEnum.NETWORK_ENGINEER: 20, # Field work + Design
+    RoleEnum.WIRELESS_ENGINEER: 20,
+    RoleEnum.PROJECT_MANAGER: 50, # High meeting load
+    RoleEnum.ARCHITECT: 10 # Mostly project work
+}
 
 class PriorityEnum(str, enum.Enum):
     P1 = "P1-Critical"
@@ -74,6 +83,25 @@ class AllocationStatusEnum(str, enum.Enum):
     ASSIGNED = "Assigned"
     REMOVED = "Removed"
 
+class TaskStatusEnum(str, enum.Enum):
+    TODO = "todo"
+    IN_PROGRESS = "in_progress"
+    BLOCKED = "blocked"
+    DONE = "done"
+
+class GlobalPolicy(Base):
+    """
+    Stores system-wide policies like 'Deep Work Days' (US-1.2).
+    """
+    __tablename__ = "global_policies"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    policy_type = Column(String, nullable=False, unique=True) # e.g. "DEEP_WORK_DAYS"
+    value = Column(Text, nullable=False) # JSON string, e.g. '["Tue", "Thu"]'
+    parameters = Column(Text, nullable=True) # JSON string, e.g. '{"violation_categories": ["Meetings"]}'
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 # =============================================================================
 # User Model (for Authentication)
 # =============================================================================
@@ -95,6 +123,9 @@ class Engineer(Base):
     role = Column(Enum(RoleEnum), nullable=False)
     total_capacity = Column(Integer, default=40)
     ktlo_tax = Column(Integer, default=0)
+    skills = Column(Text, default="[]")  # Stored as JSON string
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     allocations = relationship("Allocation", back_populates="engineer", cascade="all, delete-orphan")
 
@@ -141,6 +172,8 @@ class Project(Base):
     rid_logs = relationship("ProjectRidLog", back_populates="project")
     resourcing_requirements = relationship("ResourcingRequirement", back_populates="project")
     devices = relationship("ProjectDevice", back_populates="project", cascade="all, delete-orphan")
+    tasks = relationship("ProjectTask", back_populates="project", cascade="all, delete-orphan")
+    members = relationship("ProjectMember", back_populates="project", cascade="all, delete-orphan")
 
 class ProjectRidLog(Base):
     """Risk, Issue, Decision log entries for projects (US-11.6, US-11.7)"""
@@ -223,4 +256,91 @@ class AuditLog(Base):
     resource_id = Column(String, nullable=True)
     details = Column(Text, nullable=True)     # JSON or string details of change
     ip_address = Column(String, nullable=True)
+
+# =============================================================================
+# Scenario Planning (US-1.1, US-6.1)
+# =============================================================================
+
+class Scenario(Base):
+    __tablename__ = "scenarios"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    owner_id = Column(String, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_active = Column(Integer, default=1) # 1=Active, 0=Archived
+    mode = Column(String, default="sandbox") # 'sandbox' vs 'production' (future proofing)
+    
+    # Relationships
+    virtual_resources = relationship("VirtualResource", back_populates="scenario", cascade="all, delete-orphan")
+
+class VirtualResource(Base):
+    """
+    Temporary resources that only exist within a specific scenario (US-1.1).
+    """
+    __tablename__ = "virtual_resources"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    scenario_id = Column(String, ForeignKey("scenarios.id"), nullable=False)
+    name = Column(String, nullable=False) # e.g. "TBD Contractor 1"
+    role = Column(Enum(RoleEnum), nullable=False)
+    capacity_hours = Column(Integer, default=40)
+    cost_rate = Column(Float, nullable=True) # Hourly rate for budget calcs
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    scenario = relationship("Scenario", back_populates="virtual_resources")
+
+class ProjectTask(Base):
+    __tablename__ = "project_tasks"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    status = Column(Enum(TaskStatusEnum), default=TaskStatusEnum.TODO)
+    priority = Column(Integer, default=0)
+    start_date = Column(Date, nullable=True)
+    end_date = Column(Date, nullable=True)
+    dependency_id = Column(String, ForeignKey("project_tasks.id"), nullable=True)
+    assignee_id = Column(String, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    project = relationship("Project", back_populates="tasks")
+    assignee = relationship("User", foreign_keys=[assignee_id])
+    dependency = relationship("ProjectTask", remote_side=[id])
+
+class ProjectMember(Base):
+    """
+    Represents a specific role assigned to an engineer on a project (US-2.5).
+    Distinct from basic Owner/Manager fields or Allocations.
+    """
+    __tablename__ = "project_members"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    project_id = Column(String, ForeignKey("projects.id"), nullable=False, index=True)
+    engineer_id = Column(String, ForeignKey("engineers.id"), nullable=False)
+    role = Column(String, nullable=False) # e.g. "Tech Lead", "QA Lead"
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    project = relationship("Project", back_populates="members")
+    engineer = relationship("Engineer")
+
+
+class ProjectNote(Base):
+    """
+    Timestamped free-text notes for projects (US-2.7).
+    """
+    __tablename__ = "project_notes"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    project_id = Column(String, ForeignKey("projects.id"), nullable=False, index=True)
+    content = Column(Text, nullable=False)
+    created_by = Column(String, nullable=True) # Optional username/ID
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    project = relationship("Project", back_populates="notes")
+
+Project.notes = relationship("ProjectNote", back_populates="project", cascade="all, delete-orphan")
 

@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 
-const EngineerProfileModal = ({ engineer, allocations = [], projects = [], onClose }) => {
+const EngineerProfileModal = ({ engineer, allocations = [], projects = [], onClose, onEdit }) => {
     if (!engineer) return null;
 
     // Build project lookup
@@ -174,6 +174,16 @@ const EngineerProfileModal = ({ engineer, allocations = [], projects = [], onClo
                             fontWeight: 600,
                             cursor: 'pointer'
                         }}>Team Allocation Workbench</button>
+                        <button onClick={() => onEdit && onEdit(engineer)} style={{
+                            background: 'white',
+                            color: '#0F172A',
+                            border: '1px solid #E2E8F0',
+                            borderRadius: '8px',
+                            padding: '0.5rem 1rem',
+                            fontSize: '0.875rem',
+                            fontWeight: 600,
+                            cursor: 'pointer'
+                        }}>Edit Profile</button>
                         <button onClick={onClose} style={{
                             background: '#F1F5F9',
                             color: '#475569',
