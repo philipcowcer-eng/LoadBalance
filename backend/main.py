@@ -89,8 +89,16 @@ def read_root():
     return {"message": "Network Resource Manager API is running"}
 
 @app.get("/health")
-def health_check():
-    return {"status": "healthy"}
+def health_check(db: Session = Depends(get_db)):
+    """Health check endpoint for container orchestration and monitoring."""
+    try:
+        db.execute(text("SELECT 1"))
+        return {"status": "healthy", "database": "connected", "version": "1.0.0"}
+    except Exception as e:
+        return JSONResponse(
+            status_code=503, 
+            content={"status": "unhealthy", "database": "disconnected", "error": str(e)}
+        )
 
 @app.get("/api/debug/db-tables")
 def debug_db_tables(db: Session = Depends(get_db)):

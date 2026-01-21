@@ -1,24 +1,44 @@
-version: '3.8'
-
 services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: resource_manager_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+
   backend:
     build: ./backend
     container_name: resource_manager_backend
-    restart: always
+    restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      # Use the host IP for Postgres connectivity
-      - DATABASE_URL=postgresql://postgres:password@192.168.68.72:5432/resource_manager
-      - ALLOWED_ORIGINS=http://localhost,http://192.168.68.72
+      - ALLOWED_ORIGINS=https://planning.goodenough.to,http://localhost
     expose:
       - "8000"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   frontend:
     build: ./frontend
     container_name: resource_manager_frontend
-    restart: always
-    ports:
-      - "80:80"
+    restart: unless-stopped
+    expose:
+      - "80"
     depends_on:
       - backend
 
-# Note: We rely on the external Postgres instance (rm-postgres) running on the host.
+volumes:
+  caddy_data:
+  caddy_config:
