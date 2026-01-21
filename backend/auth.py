@@ -221,7 +221,10 @@ def register(user_data: UserCreate, request: Request, db: Session = Depends(get_
         print(f"Registration Error: {str(e)}") # Log to console
         raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
 
+from limiter import limiter
+
 @auth_router.post("/login", response_model=TokenResponse)
+@limiter.limit("5/minute")
 def login(credentials: UserLogin, request: Request, db: Session = Depends(get_db)):
     """
     Login with username and password.

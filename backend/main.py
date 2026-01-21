@@ -26,6 +26,36 @@ import scenarios
 import json
 from datetime import datetime, date
 
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from limiter import limiter
+import logging.config
+
+# =============================================================================
+# Logging Configuration (P1: Structured Logging)
+# =============================================================================
+class JsonFormatter(logging.Formatter):
+    def format(self, record):
+        log_obj = {
+            "timestamp": self.formatTime(record),
+            "level": record.levelname,
+            "message": record.getMessage(),
+            "module": record.module,
+        }
+        if record.exc_info:
+            log_obj["exception"] = self.formatException(record.exc_info)
+        return json.dumps(log_obj)
+
+handler = logging.StreamHandler()
+handler.setFormatter(JsonFormatter())
+logging.getLogger("uvicorn").handlers = [handler]
+logging.getLogger("uvicorn.access").handlers = [handler]
+
+# =============================================================================
+# Database Init
+# =============================================================================
+
 def check_policy_violations(allocation: models.Allocation, db: Session) -> List[str]:
     """
     Check if an allocation violates any global policies (US-1.2).
@@ -45,6 +75,11 @@ def check_policy_violations(allocation: models.Allocation, db: Session) -> List[
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="goodenough.to | Planning API", version="0.3.0")
+
+# Rate Limiting
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 # Include authentication router
 app.include_router(auth_router)
