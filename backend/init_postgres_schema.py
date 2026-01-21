@@ -1,11 +1,8 @@
 import os
 import sys
 
-# Add parent directory to path so we can import backend definition
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from backend.database import engine
-from backend import models
+from database import engine
+import models
 
 def init_schema():
     print(f"Initializing Schema for URL: {os.environ.get('DATABASE_URL')}")
