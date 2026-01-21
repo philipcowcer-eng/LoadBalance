@@ -1,19 +1,4 @@
 services:
-  caddy:
-    image: caddy:2-alpine
-    container_name: resource_manager_caddy
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - frontend
-      - backend
-
   backend:
     build: ./backend
     container_name: resource_manager_backend
@@ -24,6 +9,8 @@ services:
       - ALLOWED_ORIGINS=https://planning.goodenough.to,http://localhost
     expose:
       - "8000"
+    depends_on:
+      - postgres
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
       interval: 30s
@@ -34,8 +21,8 @@ services:
     build: ./frontend
     container_name: resource_manager_frontend
     restart: unless-stopped
-    expose:
-      - "80"
+    ports:
+      - "80:80"
     depends_on:
       - backend
 
@@ -53,6 +40,4 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
 volumes:
-  caddy_data:
-  caddy_config:
   postgres_data:
