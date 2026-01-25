@@ -3094,8 +3094,6 @@ function App({ isGuestMode = false }) {
                 <SnapshotManager API_BASE={API_BASE} />
                 <div style={{ borderTop: '1px solid #E2E8F0', margin: '2rem 0' }}></div>
                 <BulkImportManager API_BASE={API_BASE} />
-                <div style={{ borderTop: '1px solid #E2E8F0', margin: '2rem 0' }}></div>
-                <UserManagement API_BASE={API_BASE} />
               </div>
             )}
           </>
