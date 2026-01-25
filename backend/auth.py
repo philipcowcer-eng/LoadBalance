@@ -296,3 +296,34 @@ def update_user_role(
     record_audit(db, "UPDATE_ROLE", "User", user.id, {"username": user.username, "old_role": old_role, "new_role": user.role}, current_user, request)
     
     return UserResponse.model_validate(user)
+
+@auth_router.delete("/users/{user_id}", status_code=204)
+def delete_user(
+    user_id: str,
+    request: Request,
+    current_user: User = Depends(require_role("admin")),
+    db: Session = Depends(get_db)
+):
+    """
+    Delete a user (Admin only).
+    Cannot delete yourself.
+    """
+    if user_id == str(current_user.id):
+        raise HTTPException(status_code=400, detail="Cannot delete your own account")
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    username = user.username
+    role = user.role
+    
+    # Check if user is the last admin? (Optional safety check, maybe later)
+
+    db.delete(user)
+    db.commit()
+    
+    # Record Audit
+    record_audit(db, "DELETE_USER", "User", user_id, {"username": username, "role": role}, current_user, request)
+    
+    return None
